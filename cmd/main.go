@@ -6,7 +6,7 @@ import (
 	"github.com/hiamthach108/dreon-auth/internal/service"
 	"github.com/hiamthach108/dreon-auth/pkg/cache"
 	"github.com/hiamthach108/dreon-auth/pkg/database"
-
+	"github.com/hiamthach108/dreon-auth/pkg/jwt"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
 	"github.com/hiamthach108/dreon-auth/presentation/http"
 	"go.uber.org/fx"
@@ -21,12 +21,16 @@ func main() {
 			cache.NewAppCache,
 			database.NewDbClient,
 			http.NewHttpServer,
+			jwt.NewJwtTokenManagerFromConfig,
 
 			// Services
 			service.NewUserSvc,
 
 			// Repositories
 			repository.NewUserRepository,
+			repository.NewSuperAdminRepository,
+			repository.NewProjectRepository,
+			repository.NewSessionRepository,
 		),
 		fx.Invoke(http.RegisterHooks),
 	)

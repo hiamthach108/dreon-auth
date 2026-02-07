@@ -42,13 +42,11 @@ type AppConfig struct {
 		MaxOpenConns   int    `env:"POSTGRES_MAX_OPEN_CONNS"`
 	}
 
-	ClickHouse struct {
-		Host     string `env:"CLICKHOUSE_HOST"`
-		Port     int    `env:"CLICKHOUSE_PORT"`
-		HTTPPort int    `env:"CLICKHOUSE_HTTP_PORT"`
-		DB       string `env:"CLICKHOUSE_DB"`
-		User     string `env:"CLICKHOUSE_USER"`
-		Password string `env:"CLICKHOUSE_PASSWORD"`
+	Jwt struct {
+		PrivateKey            string `env:"JWT_PRIVATE_KEY"`
+		PublicKey             string `env:"JWT_PUBLIC_KEY"`
+		AccessTokenExpiresIn  int    `env:"JWT_ACCESS_TOKEN_EXPIRES_IN"`
+		RefreshTokenExpiresIn int    `env:"JWT_REFRESH_TOKEN_EXPIRES_IN"`
 	}
 }
 

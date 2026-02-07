@@ -38,13 +38,6 @@ services:
       POSTGRES_MAX_OPEN_CONNECTION: 50
       POSTGRES_MAX_LIFE_TIME: 1800
       POSTGRES_SSL: false
-
-      # ClickHouse
-      CLICKHOUSE_HOST: clickhouse
-      CLICKHOUSE_PORT: 9000
-      CLICKHOUSE_USERNAME: default
-      CLICKHOUSE_PASSWORD: clickhouse
-      CLICKHOUSE_DBNAME: dreon-auth
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,70 +85,10 @@ services:
     networks:
       - dreon-auth-network
 
-  clickhouse:
-    image: clickhouse/clickhouse-server:latest
-    container_name: dreon-auth-clickhouse
-    restart: unless-stopped
-    environment:
-      CLICKHOUSE_DB: dreon-auth
-      CLICKHOUSE_PASSWORD: clickhouse
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-    ports:
-      - "8123:8123"  # HTTP interface
-      - "9009:9000"  # Native client
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "localhost:8123/ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - dreon-auth-network
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:latest
-    container_name: dreon-auth-keycloak
-    restart: unless-stopped
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: postgres
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_STRICT: false
-      KC_HTTP_ENABLED: true
-      KC_HEALTH_ENABLED: true
-    command: start-dev
-    ports:
-      - "8000:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    networks:
-      - dreon-auth-network
-
 volumes:
   postgres_data:
     driver: local
   redis_data:
-    driver: local
-  clickhouse_data:
-    driver: local
-  clickhouse_logs:
     driver: local
 
 networks:

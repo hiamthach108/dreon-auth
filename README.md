@@ -1,21 +1,20 @@
 # dreon-auth
 
-A high-performance, real-time leaderboard service designed to handle millions of ranking operations with event-driven architecture.
+A Go-based **Auth Service** for authentication, sessions, and token management. Built with clean architecture and designed to evolve toward **Google Zanzibar**-style relationship-based authorization.
 
 ## 🎯 Overview
 
-dreon-auth is a scalable leaderboard service that supports different types of leaderboards with real-time updates, historical tracking, and analytics capabilities. Built with Go and leveraging Redis for blazing-fast ranking operations.
+dreon-auth is a dedicated authentication service that provides user management, JWT (RS256) issue/verify, and session handling. It is built with Go and Fx for dependency injection, PostgreSQL for persistence, and Redis for caching/sessions. The architecture and data model are prepared for a future migration to **Zanzibar**-inspired permission checks (relationship-based access control, multi-tenant relation tuples).
 
 ## 🏗️ Architecture
 
 ### Tech Stack
 
-- **Go 1.25** - High-performance backend service
-- **PostgreSQL** - Transactional database and source of truth
-- **Redis** - Real-time leaderboard engine with Sorted Sets and Streams
-- **ClickHouse** - Time-series data and analytics storage
-- **Keycloak** - Authentication and authorization
-- **Docker** - Containerization and orchestration
+- **Go 1.25** – Backend auth service
+- **PostgreSQL** – Users, tenants, sessions, and (future) relation tuples
+- **Redis** – Session store and cache
+- **JWT (RS256)** – Asymmetric token signing and verification
+- **Docker** – Containerization and orchestration
 
 ### Architecture Design
 
@@ -26,58 +25,53 @@ dreon-auth is a scalable leaderboard service that supports different types of le
        │
        ▼
 ┌─────────────────────────────────────┐
-│        dreon-auth API Server        │
-│         (Go with Fx DI)             │
+│     dreon-auth (Auth Service)      │
+│         Go + Fx DI + Echo           │
+│  • Login / Register / Token        │
+│  • Session management              │
+│  • (Future) Zanzibar Check/Expand  │
 └─────────────────────────────────────┘
-       │         │            │
-       ▼         ▼            ▼
-┌──────────┐ ┌─────────┐ ┌────────────┐
-│PostgreSQL│ │Redis    │ │ ClickHouse │
-│          │ │         │ │            │
-│- Users   │ │- ZSET   │ │- Snapshots │
-│- Config  │ │- Stream │ │- History   │
-│- Metadata│ │         │ │- Analytics │
-└──────────┘ └─────────┘ └────────────┘
+       │              │
+       ▼              ▼
+┌──────────┐   ┌─────────────┐
+│PostgreSQL│   │   Redis     │
+│          │   │             │
+│- Users   │   │- Sessions   │
+│- Tenants │   │- Cache     │
+│- Sessions│   │             │
+│- (Future)│   └─────────────┘
+│  Tuples  │
+└──────────┘
 ```
 
 ### Component Responsibilities
 
-#### PostgreSQL - Transactional Database
-- Store persistent data (users, leaderboard configurations, metadata)
-- Handle transactional operations
-- Source of truth for critical business data
-- Ensure data consistency and integrity
+#### PostgreSQL
+- **Users** – Identity and credentials
+- **Tenants** – Multi-tenant isolation (per client/org)
+- **Sessions** – Persistent session metadata
+- **Future (Zanzibar)** – Relation tuples, namespace definitions
 
-#### Redis - Real-time Leaderboard Engine
-- **Sorted Sets (ZSET)**: Core leaderboard functionality with O(log N) ranking
-- **Redis Streams**: Event-driven architecture for real-time updates
-- Ultra-fast reads/writes for live rankings
-- Handle millions of score updates per second
-- Real-time notifications and pub/sub
+#### Redis
+- Session storage and invalidation
+- Cache for tokens / hot data
+- Optional: high-throughput permission cache (when Zanzibar is in place)
 
-#### ClickHouse - Analytics & Historical Data
-- Store historical snapshots of leaderboard states
-- Time-series data for trend analysis
-- Track score changes and user activity over time
-- Fast aggregation queries for reports and dashboards
-- Analytics for business intelligence
-
-#### Keycloak - Authentication & Authorization
-- User authentication and session management
-- Role-based access control (RBAC)
-- API security and token validation
-- Multi-tenancy support
+#### JWT (RS256)
+- Issue access/refresh tokens (private key)
+- Verify tokens in APIs (public key)
+- Configurable issuer, audience, and expiry
 
 ## 🚀 Features
 
-- ✅ Real-time leaderboard updates with sub-millisecond latency
-- ✅ Multiple leaderboard types (global, time-based, group-based)
-- ✅ Event-driven architecture with Redis Streams
-- ✅ Historical tracking and analytics
-- ✅ Scalable and distributed design
-- ✅ RESTful API with HTTP
-- ✅ Secure authentication and authorization
-- ✅ Docker-ready with docker-compose
+- ✅ **Auth Service** – User CRUD, login, token issue/verify
+- ✅ **JWT RS256** – Asymmetric keys, configurable via env/file
+- ✅ **Multi-tenant** – Tenant-scoped users and (future) permissions
+- ✅ **Sessions** – Session model and storage
+- ✅ **RESTful API** – HTTP + Echo
+- ✅ **Clean architecture** – Interfaces, DTOs, repositories, services
+- ✅ **Docker-ready** – docker-compose for local dev
+- 🔜 **Zanzibar-style** – Relationship-based authorization (planned)
 
 ## 📦 Getting Started
 
@@ -102,10 +96,8 @@ docker-compose up -d
 
 3. Access the services:
 - dreon-auth API: http://localhost:8080
-- Keycloak Admin: http://localhost:8000 (admin/admin)
 - PostgreSQL: localhost:5432
 - Redis: localhost:6379
-- ClickHouse HTTP: localhost:8123
 
 ### Local Development
 
@@ -120,12 +112,48 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-3. Start dependencies (PostgreSQL, Redis, ClickHouse):
+3. **Set up JWT key pairs** (required for auth):
+
+   The app uses **RS256** (asymmetric) JWT. You must provide a private key (to sign tokens) and a public key (to verify them).
+
+   **Generate keys with OpenSSL:**
+
+   ```bash
+   # Create a directory for keys (optional; add keys/ to .gitignore)
+   mkdir -p keys
+
+   # Generate 2048-bit RSA private key
+   openssl genrsa -out keys/private.pem 2048
+
+   # Derive public key from private key
+   openssl rsa -pubout -in keys/private.pem -out keys/public.pem
+   ```
+
+   **Configure in `.env`** — use either **file paths** or **inline PEM**:
+
+   - **Option A – File paths** (recommended for local dev):
+
+     ```env
+     JWT_PRIVATE_KEY=keys/private.pem
+     JWT_PUBLIC_KEY=keys/public.pem
+     JWT_ACCESS_TOKEN_EXPIRES_IN=3600
+     JWT_REFRESH_TOKEN_EXPIRES_IN=86400
+     ```
+
+   - **Option B – Inline PEM** (e.g. for Docker/CI): set `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` to the full PEM content (including `-----BEGIN ... -----` and newlines). The app treats values starting with `-----BEGIN` as raw PEM.
+
+   **Security notes:**
+
+   - Keep `private.pem` only on the service that **issues** tokens; never commit it.
+   - Only the **public** key is needed on services that only **verify** tokens.
+   - For production, use at least 2048-bit RSA; 4096-bit is stronger: `openssl genrsa -out keys/private.pem 4096`.
+
+4. Start dependencies (PostgreSQL, Redis):
 ```bash
-docker-compose up -d postgres redis clickhouse
+docker-compose up -d postgres redis
 ```
 
-4. Run the application:
+5. Run the application:
 ```bash
 go run cmd/main.go
 ```
@@ -137,33 +165,41 @@ make run
 
 ## 📊 Data Flow
 
-### Score Update Flow
+### Auth / Token Flow
 ```
-1. Client submits score update
+1. Client sends login or token request
    ↓
-2. Validate & authenticate request
+2. Validate credentials / refresh token
    ↓
-3. Update Redis Sorted Set (instant ranking)
+3. Load user (and tenant) from PostgreSQL
    ↓
-4. Publish event to Redis Stream
+4. Issue JWT (RS256) with private key
    ↓
-5. Persist to PostgreSQL (transactional)
+5. Optionally create/update session (Redis + PostgreSQL)
    ↓
-6. Store snapshot in ClickHouse (async)
-   ↓
-7. Return updated rank to client
+6. Return access (and refresh) token to client
 ```
 
-### Leaderboard Query Flow
+### Token Verification Flow (downstream services)
 ```
-1. Client requests leaderboard
+1. Request includes Bearer token
    ↓
-2. Check Redis cache
+2. Verify JWT with public key (signature + expiry)
    ↓
-3. If miss → Query PostgreSQL
+3. Extract user/tenant from claims
    ↓
-4. Return rankings with pagination
+4. Proceed with request (or future: Zanzibar Check)
 ```
+
+## 🔜 Roadmap: Google Zanzibar
+
+Authorization is planned to align with the Google Zanzibar model:
+
+- **Relationship-based access control (ReBAC)** – Permissions as relations (e.g. `document:doc-1#viewer@user:alice`).
+- **Multi-tenant relation tuples** – All tuples scoped by `tenant_id`; models (`relation_tuples`, `namespace_definitions`) are already in place.
+- **Check / Expand APIs** – “Can user X do Y on Z?” and “List subjects with relation R on resource O” with consistent, scalable evaluation.
+
+The codebase is structured so that relation tuples and namespaces can be wired into services and HTTP/gRPC endpoints when you implement the Zanzibar engine.
 
 ## 🛠️ Development
 
@@ -216,8 +252,9 @@ This project is licensed under the MIT License.
 **hiamthach108**
 - GitHub: [@hiamthach108](https://github.com/hiamthach108)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- Built with [Fx](https://uber-go.github.io/fx/) dependency injection
-- Powered by Redis Sorted Sets for optimal leaderboard performance
+- Built with [Fx](https://uber-go.github.io/fx/) dependency injection and [Echo](https://echo.labstack.com/) for HTTP
+- JWT handling via [golang-jwt/jwt](https://github.com/golang-jwt/jwt) with RS256
 - Uses GORM for database operations
+- Future authorization design inspired by Google Zanzibar
