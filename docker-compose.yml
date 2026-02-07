@@ -1,0 +1,163 @@
+version: '3.8'
+
+services:
+  dreon-auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dreon-auth-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # App
+      APP_NAME: dreon-auth
+      APP_VERSION: 1.0.0
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 8080
+      
+      # Cache
+      CACHE_DEFAULT_EXPIRE_TIME_SEC: 3600
+      CACHE_CLEANUP_INTERVAL_HOUR: 24
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      
+      # PostgreSQL
+      POSTGRES_CONNECTION_NAME: ""
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DBNAME: dreon-auth
+      POSTGRES_SCHEMA: public
+      POSTGRES_MAX_IDLE_CONNECTION: 5
+      POSTGRES_MAX_OPEN_CONNECTION: 50
+      POSTGRES_MAX_LIFE_TIME: 1800
+      POSTGRES_SSL: false
+
+      # ClickHouse
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 9000
+      CLICKHOUSE_USERNAME: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DBNAME: dreon-auth
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - dreon-auth-network
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: dreon-auth-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dreon-auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dreon-auth-network
+
+  redis:
+    image: redis:latest
+    container_name: dreon-auth-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dreon-auth-network
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: dreon-auth-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: dreon-auth
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "9009:9000"  # Native client
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dreon-auth-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: dreon-auth-keycloak
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+    command: start-dev
+    ports:
+      - "8000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - dreon-auth-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  clickhouse_data:
+    driver: local
+  clickhouse_logs:
+    driver: local
+
+networks:
+  dreon-auth-network:
+    driver: bridge
