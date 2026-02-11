@@ -6,17 +6,16 @@ import (
 	"github.com/hiamthach108/dreon-auth/internal/service"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
 	"github.com/hiamthach108/dreon-auth/presentation/http/middleware"
-	echomw "github.com/hiamthach108/dreon-auth/presentation/http/middleware"
 	"github.com/labstack/echo/v4"
 )
 
 type AuthHandler struct {
 	authSvc   service.IAuthSvc
 	logger    logger.ILogger
-	verifyJWT echomw.VerifyJWTMiddleware
+	verifyJWT middleware.VerifyJWTMiddleware
 }
 
-func NewAuthHandler(authSvc service.IAuthSvc, logger logger.ILogger, verifyJWT echomw.VerifyJWTMiddleware) *AuthHandler {
+func NewAuthHandler(authSvc service.IAuthSvc, logger logger.ILogger, verifyJWT middleware.VerifyJWTMiddleware) *AuthHandler {
 	return &AuthHandler{
 		authSvc:   authSvc,
 		logger:    logger,

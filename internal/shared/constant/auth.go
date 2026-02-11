@@ -27,6 +27,15 @@ func (a UserAuthType) String() string {
 	return string(a)
 }
 
+// Context keys for request-scoped values (use with context.WithValue / context.Value).
+// Typed keys avoid collisions with other packages.
+type ContextKey string
+
 const (
-	JWT_PAYLOAD_CONTEXT_KEY = "user_payload"
+	JWT_PAYLOAD_CONTEXT_KEY ContextKey = "user_payload"
+
+	// Request metadata for session (ip, user agent, referer)
+	ContextKeyClientIP  ContextKey = "ip"
+	ContextKeyUserAgent ContextKey = "user_agent"
+	ContextKeyReferer   ContextKey = "referer"
 )

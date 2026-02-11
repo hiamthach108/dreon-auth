@@ -8,7 +8,7 @@ import (
 
 type LoginReq struct {
 	IsSuperAdmin bool                  `json:"isSuperAdmin"`
-	AuthType     constant.UserAuthType `json:"auth_type" binding:"required,oneof=email google facebook apple"`
+	AuthType     constant.UserAuthType `json:"authType" binding:"required,oneof=email google facebook apple"`
 	Email        string                `json:"email"`
 	Password     string                `json:"password"`
 }

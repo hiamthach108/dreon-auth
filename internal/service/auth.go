@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/hiamthach108/dreon-auth/internal/shared/helper"
 	"github.com/hiamthach108/dreon-auth/pkg/jwt"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
+	"gorm.io/datatypes"
 )
 
 type IAuthSvc interface {
@@ -140,31 +142,41 @@ func (s *AuthSvc) generateTokens(ctx context.Context, payload jwt.Payload) (*dto
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
-
 	accessToken, err := s.jwtTokenManager.Generate(ctx, payload, time.Duration(s.cfg.Jwt.AccessTokenExpiresIn)*time.Second)
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
-
+	metaJSON, _ := json.Marshal(metadataFromContext(ctx))
+	accessExp := time.Duration(s.cfg.Jwt.AccessTokenExpiresIn) * time.Second
+	refreshExp := time.Duration(s.cfg.Jwt.RefreshTokenExpiresIn) * time.Second
 	session, err := s.sessionRepo.Create(ctx, &model.Session{
 		UserID:       payload.UserID,
 		RefreshToken: refreshToken,
-		ExpiresAt:    time.Now().Add(time.Duration(s.cfg.Jwt.RefreshTokenExpiresIn) * time.Second),
+		ExpiresAt:    time.Now().Add(refreshExp),
 		IsSuperAdmin: payload.IsSuperAdmin,
 		IsActive:     true,
+		BaseModel: model.BaseModel{
+			CreatedBy: payload.UserID,
+			UpdatedBy: payload.UserID,
+			Metadata:  datatypes.JSON(metaJSON),
+		},
 	})
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
-
 	return &dto.TokenResp{
 		UserID:                payload.UserID,
 		SessionID:             session.ID,
 		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  time.Now().Add(time.Duration(s.cfg.Jwt.AccessTokenExpiresIn) * time.Second),
+		AccessTokenExpiresAt:  time.Now().Add(accessExp),
 		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: time.Now().Add(time.Duration(s.cfg.Jwt.RefreshTokenExpiresIn) * time.Second),
+		RefreshTokenExpiresAt: time.Now().Add(refreshExp),
 	}, nil
+}
+
+func metadataFromContext(ctx context.Context) map[string]any {
+	str := func(k constant.ContextKey) string { v := ctx.Value(k); s, _ := v.(string); return s }
+	return map[string]any{"ip": str(constant.ContextKeyClientIP), "user_agent": str(constant.ContextKeyUserAgent), "referer": str(constant.ContextKeyReferer)}
 }
 
 func (s *AuthSvc) loginWithSuperAdmin(ctx context.Context, req dto.LoginReq) (*dto.TokenResp, error) {
@@ -179,11 +191,20 @@ func (s *AuthSvc) loginWithSuperAdmin(ctx context.Context, req dto.LoginReq) (*d
 		return nil, errorx.New(errorx.ErrInvalidPassword, errorx.GetErrorMessage(int(errorx.ErrInvalidPassword)))
 	}
 
-	return s.generateTokens(ctx, jwt.Payload{
+	tokenResp, err := s.generateTokens(ctx, jwt.Payload{
 		UserID:       user.ID,
 		IsSuperAdmin: true,
 		Email:        user.Email,
 	})
+
+	if err != nil {
+		return nil, errorx.Wrap(errorx.ErrInternal, err)
+	}
+	err = s.updateLastLoginAt(ctx, user.ID)
+	if err != nil {
+		return nil, errorx.Wrap(errorx.ErrInternal, err)
+	}
+	return tokenResp, nil
 }
 
 func (s *AuthSvc) loginWithEmail(ctx context.Context, req dto.LoginReq) (*dto.TokenResp, error) {
@@ -198,11 +219,19 @@ func (s *AuthSvc) loginWithEmail(ctx context.Context, req dto.LoginReq) (*dto.To
 		return nil, errorx.New(errorx.ErrInvalidPassword, errorx.GetErrorMessage(int(errorx.ErrInvalidPassword)))
 	}
 
-	return s.generateTokens(ctx, jwt.Payload{
+	tokenResp, err := s.generateTokens(ctx, jwt.Payload{
 		UserID:       user.ID,
 		IsSuperAdmin: false,
 		Email:        user.Email,
 	})
+	if err != nil {
+		return nil, errorx.Wrap(errorx.ErrInternal, err)
+	}
+	err = s.updateLastLoginAt(ctx, user.ID)
+	if err != nil {
+		return nil, errorx.Wrap(errorx.ErrInternal, err)
+	}
+	return tokenResp, nil
 }
 
 func (s *AuthSvc) loginWithGoogle(ctx context.Context, req dto.LoginReq) (*dto.TokenResp, error) {
@@ -215,4 +244,10 @@ func (s *AuthSvc) loginWithFacebook(ctx context.Context, req dto.LoginReq) (*dto
 
 func (s *AuthSvc) loginWithApple(ctx context.Context, req dto.LoginReq) (*dto.TokenResp, error) {
 	panic("not implemented")
+}
+
+func (s *AuthSvc) updateLastLoginAt(ctx context.Context, userID string) error {
+	return s.userRepo.Update(ctx, userID, model.User{
+		LastLoginAt: time.Now(),
+	}, "last_login_at")
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hiamthach108/dreon-auth/config"
+	"github.com/hiamthach108/dreon-auth/internal/shared/constant"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
 	"github.com/hiamthach108/dreon-auth/presentation/http/handler"
 	"github.com/labstack/echo/v4"
@@ -28,6 +29,8 @@ func NewHttpServer(
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
+	// Inject request metadata (ip, user_agent, referer) into context for all routes
+	e.Use(requestMetadataMiddleware)
 	// Use middleware with your logger
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -68,7 +71,10 @@ func NewHttpServer(
 
 	// Healthcheck route
 	e.GET("/ping", func(c echo.Context) error {
-		return c.String(http.StatusOK, "pong")
+		return c.JSON(http.StatusOK, echo.Map{
+			"code":    http.StatusOK,
+			"message": "pong",
+		})
 	})
 
 	v1 := e.Group("/api/v1")
@@ -81,6 +87,18 @@ func NewHttpServer(
 		config: *config,
 		logger: logger,
 		echo:   e,
+	}
+}
+
+// requestMetadataMiddleware adds IP, User-Agent, and Referer to the request context for all HTTP routes.
+func requestMetadataMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		ctx = context.WithValue(ctx, constant.ContextKeyClientIP, c.RealIP())
+		ctx = context.WithValue(ctx, constant.ContextKeyUserAgent, c.Request().UserAgent())
+		ctx = context.WithValue(ctx, constant.ContextKeyReferer, c.Request().Referer())
+		c.SetRequest(c.Request().WithContext(ctx))
+		return next(c)
 	}
 }
 
