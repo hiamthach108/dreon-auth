@@ -8,25 +8,29 @@ import (
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/service"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
+	echomw "github.com/hiamthach108/dreon-auth/presentation/http/middleware"
 	"github.com/labstack/echo/v4"
 )
 
 // UserHandler handles HTTP requests for user CRUD.
 type UserHandler struct {
-	userSvc service.IUserSvc
-	logger   logger.ILogger
+	userSvc   service.IUserSvc
+	logger    logger.ILogger
+	verifyJWT echomw.VerifyJWTMiddleware
 }
 
-// NewUserHandler creates a new user handler.
-func NewUserHandler(userSvc service.IUserSvc, logger logger.ILogger) *UserHandler {
+// NewUserHandler creates a new user handler. verifyJWT is injected by fx for protected routes.
+func NewUserHandler(userSvc service.IUserSvc, logger logger.ILogger, verifyJWT echomw.VerifyJWTMiddleware) *UserHandler {
 	return &UserHandler{
-		userSvc: userSvc,
-		logger:  logger,
+		userSvc:   userSvc,
+		logger:    logger,
+		verifyJWT: verifyJWT,
 	}
 }
 
-// RegisterRoutes registers user routes on the given group.
+// RegisterRoutes registers user routes on the given group and applies JWT verification middleware.
 func (h *UserHandler) RegisterRoutes(g *echo.Group) {
+	g.Use(echo.MiddlewareFunc(h.verifyJWT))
 	g.GET("", h.List)
 	g.GET("/:id", h.GetByID)
 	g.POST("", h.Create)

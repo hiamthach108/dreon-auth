@@ -3,7 +3,10 @@ package jwt
 import (
 	"context"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
 	"errors"
+	"strings"
 	"time"
 
 	gojwt "github.com/golang-jwt/jwt/v5"
@@ -45,17 +48,92 @@ func WithAudience(audience ...string) Option {
 	return func(m *JwtTokenManager) { m.audience = audience }
 }
 
-// NewJwtTokenManagerFromConfig creates a JWT manager from configuration.
+// NewJwtTokenManagerFromConfig creates a JWT manager from config.
+// JWT_PRIVATE_KEY and JWT_PUBLIC_KEY may be either:
+// - PEM string (e.g. "-----BEGIN RSA PRIVATE KEY-----\n...")
+// - Raw base64-encoded DER (PKCS#1 or PKCS#8 for private, PKIX for public)
 func NewJwtTokenManagerFromConfig(cfg *config.AppConfig) (IJwtTokenManager, error) {
-	privateKey, err := gojwt.ParseRSAPrivateKeyFromPEM([]byte(cfg.Jwt.PrivateKey))
+	privateKey, err := parseRSAPrivateKeyFromString(cfg.Jwt.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
-	publicKey, err := gojwt.ParseRSAPublicKeyFromPEM([]byte(cfg.Jwt.PublicKey))
+	publicKey, err := parseRSAPublicKeyFromString(cfg.Jwt.PublicKey)
 	if err != nil {
 		return nil, err
 	}
 	return NewJwtTokenManager(privateKey, publicKey, WithIssuer(cfg.App.Name))
+}
+
+// parseRSAPrivateKeyFromString parses an RSA private key from a string.
+// Accepts PEM (with -----BEGIN ...-----) or raw base64-encoded DER (PKCS#1 or PKCS#8).
+func parseRSAPrivateKeyFromString(s string) (*rsa.PrivateKey, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, ErrInvalidKey
+	}
+	// PEM format
+	if strings.Contains(s, "-----BEGIN") {
+		key, err := gojwt.ParseRSAPrivateKeyFromPEM([]byte(s))
+		if err != nil {
+			return nil, err
+		}
+		return key, nil
+	}
+	// Raw base64 DER
+	der, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	// Try PKCS#1 first, then PKCS#8
+	key, err := x509.ParsePKCS1PrivateKey(der)
+	if err == nil {
+		return key, nil
+	}
+	generic, err := x509.ParsePKCS8PrivateKey(der)
+	if err != nil {
+		return nil, err
+	}
+	k, ok := generic.(*rsa.PrivateKey)
+	if !ok {
+		return nil, ErrInvalidKey
+	}
+	return k, nil
+}
+
+// parseRSAPublicKeyFromString parses an RSA public key from a string.
+// Accepts PEM (with -----BEGIN ...-----) or raw base64-encoded DER (PKIX or PKCS#1).
+func parseRSAPublicKeyFromString(s string) (*rsa.PublicKey, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, ErrInvalidKey
+	}
+	// PEM format
+	if strings.Contains(s, "-----BEGIN") {
+		key, err := gojwt.ParseRSAPublicKeyFromPEM([]byte(s))
+		if err != nil {
+			return nil, err
+		}
+		return key, nil
+	}
+	// Raw base64 DER
+	der, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	// Try PKIX first, then PKCS#1
+	pub, err := x509.ParsePKIXPublicKey(der)
+	if err == nil {
+		k, ok := pub.(*rsa.PublicKey)
+		if !ok {
+			return nil, ErrInvalidKey
+		}
+		return k, nil
+	}
+	key, err := x509.ParsePKCS1PublicKey(der)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
 }
 
 // NewJwtTokenManager creates a JWT manager that signs with the private key and verifies with the public key.

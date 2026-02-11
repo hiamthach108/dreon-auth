@@ -4,9 +4,8 @@ import gojwt "github.com/golang-jwt/jwt/v5"
 
 // Payload holds application-specific claims (no expiry/audience — use Claims for full JWT).
 type Payload struct {
-	UserID       string `json:"user_id"`
-	IsSuperAdmin bool   `json:"is_super_admin"`
-	Status       string `json:"status"`
+	UserID       string `json:"userId"`
+	IsSuperAdmin bool   `json:"isSuperAdmin"`
 	Email        string `json:"email"`
 }
 

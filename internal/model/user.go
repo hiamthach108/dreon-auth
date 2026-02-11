@@ -13,6 +13,7 @@ type User struct {
 	Password    string                `gorm:"type:varchar(255);not null"`
 	Status      constant.UserStatus   `gorm:"type:varchar(50);default:active"`
 	AuthType    constant.UserAuthType `gorm:"type:varchar(50);default:email"`
+	AuthTypeID  string                `gorm:"type:varchar(100);"`
 	LastLoginAt time.Time             `gorm:"type:timestamp;default:null"`
 }
 

@@ -86,7 +86,7 @@ func TestNewManagerFromPEM_validKeys_returnsManager(t *testing.T) {
 func TestGenerate_returnsNonEmptyToken(t *testing.T) {
 	m := testManager(t)
 	ctx := context.Background()
-	payload := Payload{UserID: "user-1", Email: "a@b.com", Status: "active"}
+	payload := Payload{UserID: "user-1", Email: "a@b.com"}
 
 	token, err := m.Generate(ctx, payload, time.Hour)
 	if err != nil {
@@ -103,7 +103,6 @@ func TestGenerate_verifyRoundTrip_returnsSamePayload(t *testing.T) {
 	payload := Payload{
 		UserID:       "user-123",
 		IsSuperAdmin: true,
-		Status:       "active",
 		Email:        "alice@example.com",
 	}
 
@@ -121,9 +120,6 @@ func TestGenerate_verifyRoundTrip_returnsSamePayload(t *testing.T) {
 	}
 	if got.Email != payload.Email {
 		t.Errorf("Email = %q, want %q", got.Email, payload.Email)
-	}
-	if got.Status != payload.Status {
-		t.Errorf("Status = %q, want %q", got.Status, payload.Status)
 	}
 	if got.IsSuperAdmin != payload.IsSuperAdmin {
 		t.Errorf("IsSuperAdmin = %v, want %v", got.IsSuperAdmin, payload.IsSuperAdmin)
@@ -157,7 +153,7 @@ func TestVerify_expiredToken_returnsError(t *testing.T) {
 		t.Fatalf("NewManagerFromPEM: %v", err)
 	}
 	ctx := context.Background()
-	payload := Payload{UserID: "u1", Email: "e@e.com", Status: "active"}
+	payload := Payload{UserID: "u1", Email: "e@e.com"}
 
 	// Generate token that expired 1 hour ago
 	token, err := m.Generate(ctx, payload, -time.Hour)
@@ -177,7 +173,7 @@ func TestVerify_tokenSignedWithDifferentKey_returnsError(t *testing.T) {
 	m1, _ := NewManagerFromPEM(priv1, pub1)
 	m2, _ := NewManagerFromPEM(priv2, pub2) // different key pair
 	ctx := context.Background()
-	payload := Payload{UserID: "u1", Email: "e@e.com", Status: "active"}
+	payload := Payload{UserID: "u1", Email: "e@e.com"}
 
 	token, err := m1.Generate(ctx, payload, time.Hour)
 	if err != nil {
@@ -201,7 +197,7 @@ func TestWithIssuer_and_WithAudience_setInToken(t *testing.T) {
 		t.Fatalf("NewManagerFromPEM: %v", err)
 	}
 	ctx := context.Background()
-	token, err := m.Generate(ctx, Payload{UserID: "u1", Email: "a@b.com", Status: "active"}, time.Hour)
+	token, err := m.Generate(ctx, Payload{UserID: "u1", Email: "a@b.com"}, time.Hour)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}

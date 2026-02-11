@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/hiamthach108/dreon-auth/config"
-	"github.com/hiamthach108/dreon-auth/internal/service"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
 	"github.com/hiamthach108/dreon-auth/presentation/http/handler"
 	"github.com/labstack/echo/v4"
@@ -23,10 +22,12 @@ type HttpServer struct {
 func NewHttpServer(
 	config *config.AppConfig,
 	logger logger.ILogger,
-	userSvc service.IUserSvc,
+	userHandler *handler.UserHandler,
+	authHandler *handler.AuthHandler,
 ) *HttpServer {
 	e := echo.New()
 	e.HideBanner = true
+	e.HidePort = true
 	// Use middleware with your logger
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -72,9 +73,9 @@ func NewHttpServer(
 
 	v1 := e.Group("/api/v1")
 
-	// Register user routes
-	userHandler := handler.NewUserHandler(userSvc, logger)
+	// Register user routes (middleware applied inside RegisterRoutes)
 	userHandler.RegisterRoutes(v1.Group("/users"))
+	authHandler.RegisterRoutes(v1.Group("/auth"))
 
 	return &HttpServer{
 		config: *config,
