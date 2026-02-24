@@ -28,15 +28,18 @@ func main() {
 			database.NewDbClient,
 			jwt.NewJwtTokenManagerFromConfig,
 			echomw.NewVerifyJWTMiddleware,
+			echomw.NewVerifySuperAdminMiddleware,
 			http.NewHttpServer,
 
 			// Handlers
 			handler.NewUserHandler,
 			handler.NewAuthHandler,
+			handler.NewProjectHandler,
 
 			// Services
 			service.NewUserSvc,
 			service.NewAuthSvc,
+			service.NewProjectSvc,
 
 			// Repositories
 			repository.NewUserRepository,

@@ -8,5 +8,5 @@ type Project struct {
 }
 
 func (Project) TableName() string {
-	return "clients"
+	return "projects"
 }

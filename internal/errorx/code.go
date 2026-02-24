@@ -24,6 +24,12 @@ const (
 	ErrInvalidPassword     AppErrCode = 1008
 	ErrInvalidRefreshToken AppErrCode = 1009
 	ErrRefreshTokenExpired AppErrCode = 1010
+
+	// Project errors
+	ErrProjectNotFound AppErrCode = 1011
+	ErrProjectConflict AppErrCode = 1012
+	ErrCreateProject   AppErrCode = 1013
+	ErrUpdateProject   AppErrCode = 1014
 )
 
 var errorMsgs = map[AppErrCode]string{
@@ -46,6 +52,11 @@ var errorMsgs = map[AppErrCode]string{
 	ErrInvalidPassword:     "Invalid password",
 	ErrInvalidRefreshToken: "Invalid refresh token",
 	ErrRefreshTokenExpired: "Refresh token expired",
+
+	ErrProjectNotFound: "Project not found",
+	ErrProjectConflict: "Project with this code already exists",
+	ErrCreateProject:   "Failed to create project",
+	ErrUpdateProject:   "Failed to update project",
 }
 
 // GetErrorMessage returns a user-friendly error message for a given error code.
