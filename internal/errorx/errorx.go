@@ -32,3 +32,11 @@ func New(code AppErrCode, message string) *AppError {
 		Message: message,
 	}
 }
+
+// GetCode extracts the error code from an AppError
+func GetCode(err error) AppErrCode {
+	if appErr, ok := err.(*AppError); ok {
+		return appErr.Code
+	}
+	return ErrInternal
+}

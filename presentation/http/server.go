@@ -26,6 +26,7 @@ func NewHttpServer(
 	userHandler *handler.UserHandler,
 	authHandler *handler.AuthHandler,
 	projectHandler *handler.ProjectHandler,
+	relationHandler *handler.RelationHandler,
 ) *HttpServer {
 	e := echo.New()
 	e.HideBanner = true
@@ -84,6 +85,7 @@ func NewHttpServer(
 	userHandler.RegisterRoutes(v1.Group("/users"))
 	authHandler.RegisterRoutes(v1.Group("/auth"))
 	projectHandler.RegisterRoutes(v1.Group("/projects"))
+	relationHandler.RegisterRoutes(v1.Group("/relations"))
 
 	return &HttpServer{
 		config: *config,

@@ -30,6 +30,16 @@ const (
 	ErrProjectConflict AppErrCode = 1012
 	ErrCreateProject   AppErrCode = 1013
 	ErrUpdateProject   AppErrCode = 1014
+
+	// Permission errors
+	ErrPermissionDenied   AppErrCode = 1015
+	ErrPermissionNotFound AppErrCode = 1016
+	ErrPermissionConflict AppErrCode = 1017
+	ErrInvalidPermission  AppErrCode = 1018
+	ErrPermissionExpired  AppErrCode = 1019
+	ErrGrantPermission    AppErrCode = 1020
+	ErrRevokePermission   AppErrCode = 1021
+	ErrInvalidTupleFormat AppErrCode = 1022
 )
 
 var errorMsgs = map[AppErrCode]string{
@@ -57,6 +67,15 @@ var errorMsgs = map[AppErrCode]string{
 	ErrProjectConflict: "Project with this code already exists",
 	ErrCreateProject:   "Failed to create project",
 	ErrUpdateProject:   "Failed to update project",
+
+	ErrPermissionDenied:   "Permission denied",
+	ErrPermissionNotFound: "Permission not found",
+	ErrPermissionConflict: "Permission already exists",
+	ErrInvalidPermission:  "Invalid permission",
+	ErrPermissionExpired:  "Permission has expired",
+	ErrGrantPermission:    "Failed to grant permission",
+	ErrRevokePermission:   "Failed to revoke permission",
+	ErrInvalidTupleFormat: "Invalid relation tuple format",
 }
 
 // GetErrorMessage returns a user-friendly error message for a given error code.

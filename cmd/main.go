@@ -35,17 +35,20 @@ func main() {
 			handler.NewUserHandler,
 			handler.NewAuthHandler,
 			handler.NewProjectHandler,
+			handler.NewRelationHandler,
 
 			// Services
 			service.NewUserSvc,
 			service.NewAuthSvc,
 			service.NewProjectSvc,
+			service.NewRelationSvc,
 
 			// Repositories
 			repository.NewUserRepository,
 			repository.NewSuperAdminRepository,
 			repository.NewProjectRepository,
 			repository.NewSessionRepository,
+			repository.NewRelationTupleRepository,
 		),
 		fx.Invoke(http.RegisterHooks),
 	)

@@ -14,6 +14,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const (
+	ErrCacheNil = redis.Nil
+)
+
 type appCache struct {
 	serviceName string
 	logger      logger.ILogger
