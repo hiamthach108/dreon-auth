@@ -78,7 +78,7 @@ func (h *UserHandler) HandleGetUserByID(c echo.Context) error {
 func (h *UserHandler) HandleCreateUser(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	req, err := BindAndValidate[dto.CreateUserReq](c)
+	req, err := HandleValidateBind[dto.CreateUserReq](c)
 	if err != nil {
 		h.logger.Error("Failed to bind create user request", "error", err)
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
@@ -100,7 +100,7 @@ func (h *UserHandler) HandleUpdateUser(c echo.Context) error {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, nil))
 	}
 
-	req, err := BindAndValidate[dto.UpdateUserReq](c)
+	req, err := HandleValidateBind[dto.UpdateUserReq](c)
 	if err != nil {
 		h.logger.Error("Failed to bind update user request", "error", err)
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))

@@ -33,14 +33,14 @@ func NewRoleHandler(
 func (h *RoleHandler) RegisterRoutes(g *echo.Group) {
 	// All routes require JWT authentication
 	g.Use(echo.MiddlewareFunc(h.verifyJWT))
-	
+
 	// Role CRUD - Create, Update, Delete require super admin for system roles
 	g.POST("", h.HandleCreateRole)
 	g.GET("/:id", h.HandleGetRole)
 	g.PUT("/:id", h.HandleUpdateRole)
 	g.DELETE("/:id", h.HandleDeleteRole)
 	g.GET("", h.HandleListRoles)
-	
+
 	// User role assignments - require super admin for system roles
 	g.POST("/assign", h.HandleAssignRoleToUser)
 	g.POST("/remove", h.HandleRemoveRoleFromUser)
@@ -50,7 +50,7 @@ func (h *RoleHandler) RegisterRoutes(g *echo.Group) {
 // HandleCreateRole creates a new role
 func (h *RoleHandler) HandleCreateRole(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := BindAndValidate[dto.CreateRoleReq](c)
+	req, err := HandleValidateBind[dto.CreateRoleReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -84,7 +84,7 @@ func (h *RoleHandler) HandleGetRole(c echo.Context) error {
 func (h *RoleHandler) HandleUpdateRole(c echo.Context) error {
 	ctx := c.Request().Context()
 	roleID := c.Param("id")
-	req, err := BindAndValidate[dto.UpdateRoleReq](c)
+	req, err := HandleValidateBind[dto.UpdateRoleReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -120,7 +120,7 @@ func (h *RoleHandler) HandleDeleteRole(c echo.Context) error {
 // HandleListRoles lists roles with optional filters
 func (h *RoleHandler) HandleListRoles(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := BindAndValidate[dto.ListRolesReq](c)
+	req, err := HandleValidateBind[dto.ListRolesReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -136,7 +136,7 @@ func (h *RoleHandler) HandleListRoles(c echo.Context) error {
 // HandleAssignRoleToUser assigns a role to a user
 func (h *RoleHandler) HandleAssignRoleToUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := BindAndValidate[dto.AssignRoleToUserReq](c)
+	req, err := HandleValidateBind[dto.AssignRoleToUserReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -156,7 +156,7 @@ func (h *RoleHandler) HandleAssignRoleToUser(c echo.Context) error {
 // HandleRemoveRoleFromUser removes a role from a user
 func (h *RoleHandler) HandleRemoveRoleFromUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := BindAndValidate[dto.RemoveRoleFromUserReq](c)
+	req, err := HandleValidateBind[dto.RemoveRoleFromUserReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -177,7 +177,7 @@ func (h *RoleHandler) HandleGetUserRoles(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID := c.Param("userId")
 
-	req, err := BindAndValidate[dto.GetUserRolesReq](c)
+	req, err := HandleValidateBind[dto.GetUserRolesReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}

@@ -28,9 +28,9 @@ type ValidationErrResp struct {
 	Errors  []ValidationErrItem `json:"errors"`
 }
 
-// BindAndValidate binds the request body to a value of type T and validates it.
+// HandleValidateBind binds the request body to a value of type T and validates it.
 // Returns the bound value or the zero value and an error on bind/validation failure.
-func BindAndValidate[T any](c echo.Context) (T, error) {
+func HandleValidateBind[T any](c echo.Context) (T, error) {
 	var req T
 	if err := c.Bind(&req); err != nil {
 		return req, err
