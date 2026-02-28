@@ -363,5 +363,5 @@ func (s *RoleSvc) userPermissionsCacheKey(userID string) string {
 
 func (s *RoleSvc) clearUserPermissionsCache(userID string) {
 	cacheKey := s.userPermissionsCacheKey(userID)
-	s.cache.Delete(cacheKey)
+	_ = s.cache.Delete(cacheKey)
 }

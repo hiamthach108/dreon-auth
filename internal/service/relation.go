@@ -380,5 +380,5 @@ func (s *RelationSvc) buildCacheKey(tuple *model.RelationTuple) string {
 
 func (s *RelationSvc) clearRelationTupleCache(tuple *model.RelationTuple) {
 	cacheKey := s.buildCacheKey(tuple)
-	s.cache.Delete(cacheKey)
+	_ = s.cache.Delete(cacheKey)
 }
