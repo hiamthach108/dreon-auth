@@ -5,15 +5,15 @@ import "time"
 // GrantRelationReq represents a request to grant a relation tuple
 type GrantRelationReq struct {
 	// Object components
-	Namespace string `json:"namespace" binding:"required"`
-	ObjectID  string `json:"objectId" binding:"required"`
+	Namespace string `json:"namespace" validate:"required"`
+	ObjectID  string `json:"objectId" validate:"required"`
 	
 	// Relation
-	Relation string `json:"relation" binding:"required"`
+	Relation string `json:"relation" validate:"required"`
 	
 	// Subject components
-	SubjectNamespace string `json:"subjectNamespace" binding:"required"`
-	SubjectObjectID  string `json:"subjectObjectId" binding:"required"`
+	SubjectNamespace string `json:"subjectNamespace" validate:"required"`
+	SubjectObjectID  string `json:"subjectObjectId" validate:"required"`
 	SubjectRelation  string `json:"subjectRelation,omitempty"` // Optional: for usersets
 	
 	// Optional metadata
@@ -22,21 +22,21 @@ type GrantRelationReq struct {
 
 // RevokeRelationReq represents a request to revoke a relation tuple
 type RevokeRelationReq struct {
-	Namespace        string `json:"namespace" binding:"required"`
-	ObjectID         string `json:"objectId" binding:"required"`
-	Relation         string `json:"relation" binding:"required"`
-	SubjectNamespace string `json:"subjectNamespace" binding:"required"`
-	SubjectObjectID  string `json:"subjectObjectId" binding:"required"`
+	Namespace        string `json:"namespace" validate:"required"`
+	ObjectID         string `json:"objectId" validate:"required"`
+	Relation         string `json:"relation" validate:"required"`
+	SubjectNamespace string `json:"subjectNamespace" validate:"required"`
+	SubjectObjectID  string `json:"subjectObjectId" validate:"required"`
 	SubjectRelation  string `json:"subjectRelation,omitempty"`
 }
 
 // CheckRelationReq represents a request to check if a relation exists
 type CheckRelationReq struct {
-	Namespace        string `json:"namespace" binding:"required"`
-	ObjectID         string `json:"objectId" binding:"required"`
-	Relation         string `json:"relation" binding:"required"`
-	SubjectNamespace string `json:"subjectNamespace" binding:"required"`
-	SubjectObjectID  string `json:"subjectObjectId" binding:"required"`
+	Namespace        string `json:"namespace" validate:"required"`
+	ObjectID         string `json:"objectId" validate:"required"`
+	Relation         string `json:"relation" validate:"required"`
+	SubjectNamespace string `json:"subjectNamespace" validate:"required"`
+	SubjectObjectID  string `json:"subjectObjectId" validate:"required"`
 }
 
 // CheckRelationResp represents the response of a relation check
@@ -79,19 +79,19 @@ type RelationTupleResp struct {
 
 // BulkGrantRelationReq represents a request to grant multiple relation tuples
 type BulkGrantRelationReq struct {
-	Relations []GrantRelationReq `json:"relations" binding:"required,min=1,dive"`
+	Relations []GrantRelationReq `json:"relations" validate:"required,min=1,dive"`
 }
 
 // BulkRevokeRelationReq represents a request to revoke multiple relation tuples
 type BulkRevokeRelationReq struct {
-	Relations []RevokeRelationReq `json:"relations" binding:"required,min=1,dive"`
+	Relations []RevokeRelationReq `json:"relations" validate:"required,min=1,dive"`
 }
 
 // ExpandRelationReq represents a request to expand a relation (get all subjects)
 type ExpandRelationReq struct {
-	Namespace string `json:"namespace" binding:"required"`
-	ObjectID  string `json:"objectId" binding:"required"`
-	Relation  string `json:"relation" binding:"required"`
+	Namespace string `json:"namespace" validate:"required"`
+	ObjectID  string `json:"objectId" validate:"required"`
+	Relation  string `json:"relation" validate:"required"`
 }
 
 // RelationSubjectResp represents a subject in relation expansion

@@ -48,6 +48,10 @@ type AppConfig struct {
 		AccessTokenExpiresIn  int    `env:"JWT_ACCESS_TOKEN_EXPIRES_IN"`
 		RefreshTokenExpiresIn int    `env:"JWT_REFRESH_TOKEN_EXPIRES_IN"`
 	}
+
+	Permissions struct {
+		FilePath string `env:"PERMISSIONS_FILE"`
+	}
 }
 
 func NewAppConfig() (*AppConfig, error) {

@@ -1,8 +1,8 @@
 package dto
 
 type PaginationReq struct {
-	Page     int     `form:"page" json:"page" binding:"gte=1"`
-	PageSize int     `form:"pageSize" json:"pageSize" binding:"gte=1,lte=100"`
+	Page     int     `form:"page" json:"page" validate:"gte=1"`
+	PageSize int     `form:"pageSize" json:"pageSize" validate:"gte=1,lte=100"`
 	Cursor   *string `form:"cursor" json:"cursor"`
 }
 

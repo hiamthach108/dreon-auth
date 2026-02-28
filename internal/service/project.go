@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/hiamthach108/dreon-auth/internal/dto"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
+	"github.com/hiamthach108/dreon-auth/internal/shared/helper"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
 )
 
@@ -34,19 +36,12 @@ func NewProjectSvc(logger logger.ILogger, repo repository.IProjectRepository) IP
 
 // Create creates a new project.
 func (s *ProjectSvc) Create(ctx context.Context, req dto.CreateProjectReq) (*dto.ProjectDto, error) {
-	existing, err := s.repo.FindByCode(ctx, req.Code)
-	if err != nil {
-		s.logger.Error("[ProjectSvc] failed to check code", "code", req.Code, "error", err)
-		return nil, errorx.Wrap(errorx.ErrInternal, err)
-	}
-	if existing != nil {
-		return nil, errorx.New(errorx.ErrProjectConflict, "project code already exists")
-	}
 
 	model := req.ToModel()
+	model.Code = s.generateCode(req.Name)
 	created, err := s.repo.Create(ctx, model)
 	if err != nil {
-		s.logger.Error("[ProjectSvc] failed to create project", "code", req.Code, "error", err)
+		s.logger.Error("[ProjectSvc] failed to create project", "code", model.Code, "error", err)
 		return nil, errorx.Wrap(errorx.ErrCreateProject, err)
 	}
 
@@ -113,18 +108,6 @@ func (s *ProjectSvc) Update(ctx context.Context, id string, req dto.UpdateProjec
 		return &resp, nil
 	}
 
-	// If code is being updated, ensure it doesn't conflict with another project.
-	if updated.Code != "" && updated.Code != p.Code {
-		existing, err := s.repo.FindByCode(ctx, updated.Code)
-		if err != nil {
-			s.logger.Error("[ProjectSvc] failed to check code", "code", updated.Code, "error", err)
-			return nil, errorx.Wrap(errorx.ErrInternal, err)
-		}
-		if existing != nil {
-			return nil, errorx.New(errorx.ErrProjectConflict, "project code already exists")
-		}
-	}
-
 	if err := s.repo.Update(ctx, id, *updated, fields...); err != nil {
 		s.logger.Error("[ProjectSvc] failed to update project", "id", id, "error", err)
 		return nil, errorx.Wrap(errorx.ErrUpdateProject, err)
@@ -152,4 +135,8 @@ func (s *ProjectSvc) Delete(ctx context.Context, id string) error {
 		return errorx.Wrap(errorx.ErrInternal, err)
 	}
 	return nil
+}
+
+func (s *ProjectSvc) generateCode(name string) string {
+	return strings.ToUpper(helper.NormalizeSlug(name) + "-" + helper.RandomString(6))
 }

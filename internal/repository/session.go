@@ -22,7 +22,7 @@ func NewSessionRepository(dbClient *gorm.DB) ISessionRepository {
 
 func (r *sessionRepository) FindByRefreshToken(ctx context.Context, refreshToken string) *model.Session {
 	var result model.Session
-	err := r.dbClient.WithContext(ctx).Preload("User").Where(&model.Session{
+	err := r.dbClient.WithContext(ctx).Where(&model.Session{
 		RefreshToken: refreshToken,
 	}).First(&result).Error
 	if err != nil {

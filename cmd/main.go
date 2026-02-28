@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hiamthach108/dreon-auth/config"
+	"github.com/hiamthach108/dreon-auth/internal/shared/permission"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
 	"github.com/hiamthach108/dreon-auth/internal/service"
 	"github.com/hiamthach108/dreon-auth/pkg/cache"
@@ -29,6 +30,7 @@ func main() {
 			jwt.NewJwtTokenManagerFromConfig,
 			echomw.NewVerifyJWTMiddleware,
 			echomw.NewVerifySuperAdminMiddleware,
+			permission.NewRegistryFromConfig,
 			http.NewHttpServer,
 
 			// Handlers
@@ -36,12 +38,15 @@ func main() {
 			handler.NewAuthHandler,
 			handler.NewProjectHandler,
 			handler.NewRelationHandler,
+			handler.NewRoleHandler,
+			handler.NewPermissionHandler,
 
 			// Services
 			service.NewUserSvc,
 			service.NewAuthSvc,
 			service.NewProjectSvc,
 			service.NewRelationSvc,
+			service.NewRoleSvc,
 
 			// Repositories
 			repository.NewUserRepository,
@@ -49,6 +54,8 @@ func main() {
 			repository.NewProjectRepository,
 			repository.NewSessionRepository,
 			repository.NewRelationTupleRepository,
+			repository.NewRoleRepository,
+			repository.NewUserRoleRepository,
 		),
 		fx.Invoke(http.RegisterHooks),
 	)

@@ -1,0 +1,58 @@
+[
+  {
+    "name": "User View",
+    "code": "users.view"
+  },
+  {
+    "name": "User Create",
+    "code": "users.create"
+  },
+  {
+    "name": "User Update",
+    "code": "users.update"
+  },
+  {
+    "name": "User Delete",
+    "code": "users.delete"
+  },
+  {
+    "name": "Role View",
+    "code": "roles.view"
+  },
+  {
+    "name": "Role Create",
+    "code": "roles.create"
+  },
+  {
+    "name": "Role Update",
+    "code": "roles.update"
+  },
+  {
+    "name": "Role Delete",
+    "code": "roles.delete"
+  },
+  {
+    "name": "Role Assign",
+    "code": "roles.assign"
+  },
+  {
+    "name": "Role Revoke",
+    "code": "roles.revoke"
+  },
+  {
+    "name": "Project View",
+    "code": "projects.view"
+  },
+  {
+    "name": "Project Create",
+    "code": "projects.create"
+  },
+  {
+    "name": "Project Update",
+    "code": "projects.update"
+  },
+  {
+    "name": "Project Delete",
+    "code": "projects.delete"
+  }
+]

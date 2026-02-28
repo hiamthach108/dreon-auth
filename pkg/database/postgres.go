@@ -80,6 +80,9 @@ func autoMigration(db *gorm.DB, logger logger.ILogger) error {
 		&model.SuperAdmin{},
 		&model.Project{},
 		&model.Session{},
+		&model.RelationTuple{},
+		&model.Role{},
+		&model.UserRole{},
 	); err != nil {
 		logger.Error("Failed to auto migrate database", "error", err)
 		return err

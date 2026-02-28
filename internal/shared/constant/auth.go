@@ -39,3 +39,10 @@ const (
 	ContextKeyUserAgent ContextKey = "user_agent"
 	ContextKeyReferer   ContextKey = "referer"
 )
+
+// Role codes for system roles
+const (
+	RoleAdmin  = "admin"
+	RoleEditor = "editor"
+	RoleUser   = "user"
+)

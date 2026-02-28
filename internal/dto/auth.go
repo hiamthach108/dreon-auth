@@ -8,7 +8,7 @@ import (
 
 type LoginReq struct {
 	IsSuperAdmin bool                  `json:"isSuperAdmin"`
-	AuthType     constant.UserAuthType `json:"authType" binding:"required,oneof=email google facebook apple"`
+	AuthType     constant.UserAuthType `json:"authType" validate:"required,oneof=email google facebook apple"`
 	Email        string                `json:"email"`
 	Password     string                `json:"password"`
 }
@@ -23,14 +23,14 @@ type TokenResp struct {
 }
 
 type RegisterReq struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 type RefreshTokenReq struct {
-	RefreshToken string `json:"refreshToken" binding:"required"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
 }
 
 type LogoutReq struct {
-	RefreshToken string `json:"refreshToken" binding:"required"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
 }

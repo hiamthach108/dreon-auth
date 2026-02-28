@@ -8,6 +8,7 @@ import (
 	"github.com/hiamthach108/dreon-auth/config"
 	"github.com/hiamthach108/dreon-auth/internal/shared/constant"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
+	"github.com/hiamthach108/dreon-auth/pkg/validator"
 	"github.com/hiamthach108/dreon-auth/presentation/http/handler"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -27,10 +28,13 @@ func NewHttpServer(
 	authHandler *handler.AuthHandler,
 	projectHandler *handler.ProjectHandler,
 	relationHandler *handler.RelationHandler,
+	roleHandler *handler.RoleHandler,
+	permissionHandler *handler.PermissionHandler,
 ) *HttpServer {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
+	e.Validator = validator.New()
 	// Inject request metadata (ip, user_agent, referer) into context for all routes
 	e.Use(requestMetadataMiddleware)
 	// Use middleware with your logger
@@ -86,6 +90,8 @@ func NewHttpServer(
 	authHandler.RegisterRoutes(v1.Group("/auth"))
 	projectHandler.RegisterRoutes(v1.Group("/projects"))
 	relationHandler.RegisterRoutes(v1.Group("/relations"))
+	roleHandler.RegisterRoutes(v1.Group("/roles"))
+	permissionHandler.RegisterRoutes(v1.Group("/permissions"))
 
 	return &HttpServer{
 		config: *config,

@@ -13,7 +13,7 @@ const (
 	ErrUnprocessable AppErrCode = 422
 	ErrRateLimit     AppErrCode = 429
 
-	// User errors
+	// Business errors
 	ErrUserNotFound        AppErrCode = 1001
 	ErrUserConflict        AppErrCode = 1002
 	ErrCreateUser          AppErrCode = 1003
@@ -24,22 +24,26 @@ const (
 	ErrInvalidPassword     AppErrCode = 1008
 	ErrInvalidRefreshToken AppErrCode = 1009
 	ErrRefreshTokenExpired AppErrCode = 1010
-
-	// Project errors
-	ErrProjectNotFound AppErrCode = 1011
-	ErrProjectConflict AppErrCode = 1012
-	ErrCreateProject   AppErrCode = 1013
-	ErrUpdateProject   AppErrCode = 1014
-
-	// Permission errors
-	ErrPermissionDenied   AppErrCode = 1015
-	ErrPermissionNotFound AppErrCode = 1016
-	ErrPermissionConflict AppErrCode = 1017
-	ErrInvalidPermission  AppErrCode = 1018
-	ErrPermissionExpired  AppErrCode = 1019
-	ErrGrantPermission    AppErrCode = 1020
-	ErrRevokePermission   AppErrCode = 1021
-	ErrInvalidTupleFormat AppErrCode = 1022
+	ErrProjectNotFound     AppErrCode = 1011
+	ErrProjectConflict     AppErrCode = 1012
+	ErrCreateProject       AppErrCode = 1013
+	ErrUpdateProject       AppErrCode = 1014
+	ErrPermissionDenied    AppErrCode = 1015
+	ErrPermissionNotFound  AppErrCode = 1016
+	ErrPermissionConflict  AppErrCode = 1017
+	ErrInvalidPermission   AppErrCode = 1018
+	ErrPermissionExpired   AppErrCode = 1019
+	ErrGrantPermission     AppErrCode = 1020
+	ErrRevokePermission    AppErrCode = 1021
+	ErrInvalidTupleFormat  AppErrCode = 1022
+	ErrRoleNotFound        AppErrCode = 1023
+	ErrRoleConflict        AppErrCode = 1024
+	ErrCreateRole          AppErrCode = 1025
+	ErrUpdateRole          AppErrCode = 1026
+	ErrDeleteRole          AppErrCode = 1027
+	ErrSystemRoleProtected AppErrCode = 1028
+	ErrInvalidRole         AppErrCode = 1029
+	ErrRoleAssignment      AppErrCode = 1030
 )
 
 var errorMsgs = map[AppErrCode]string{
@@ -76,6 +80,15 @@ var errorMsgs = map[AppErrCode]string{
 	ErrGrantPermission:    "Failed to grant permission",
 	ErrRevokePermission:   "Failed to revoke permission",
 	ErrInvalidTupleFormat: "Invalid relation tuple format",
+
+	ErrRoleNotFound:        "Role not found",
+	ErrRoleConflict:        "Role with this code already exists",
+	ErrCreateRole:          "Failed to create role",
+	ErrUpdateRole:          "Failed to update role",
+	ErrDeleteRole:          "Failed to delete role",
+	ErrSystemRoleProtected: "System roles can only be modified by super admins",
+	ErrInvalidRole:         "Invalid role data",
+	ErrRoleAssignment:      "Failed to assign/remove role",
 }
 
 // GetErrorMessage returns a user-friendly error message for a given error code.

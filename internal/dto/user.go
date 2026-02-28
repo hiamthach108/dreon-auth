@@ -8,16 +8,16 @@ import (
 
 // CreateUserReq is the request body for creating a user.
 type CreateUserReq struct {
-	Username string `json:"username" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
+	Username string `json:"username" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 // UpdateUserReq is the request body for updating a user (partial update).
 type UpdateUserReq struct {
 	Username *string `json:"username"`
-	Email    *string `json:"email" binding:"omitempty,email"`
-	Password *string `json:"password" binding:"omitempty,min=8"`
+	Email    *string `json:"email" validate:"omitempty,email"`
+	Password *string `json:"password" validate:"omitempty,min=8"`
 }
 
 // UserDto is the response DTO for user (password omitted).

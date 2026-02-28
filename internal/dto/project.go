@@ -8,14 +8,12 @@ import (
 
 // CreateProjectReq is the request body for creating a project.
 type CreateProjectReq struct {
-	Code        string `json:"code" binding:"required"`
-	Name        string `json:"name" binding:"required"`
+	Name        string `json:"name" validate:"required"`
 	Description string `json:"description"`
 }
 
 // UpdateProjectReq is the request body for updating a project (partial update).
 type UpdateProjectReq struct {
-	Code        *string `json:"code"`
 	Name        *string `json:"name"`
 	Description *string `json:"description"`
 }
@@ -46,7 +44,6 @@ func (d *ProjectDto) FromModel(m *model.Project) {
 // ToModel maps CreateProjectReq to model.Project.
 func (r *CreateProjectReq) ToModel() *model.Project {
 	return &model.Project{
-		Code:        r.Code,
 		Name:        r.Name,
 		Description: r.Description,
 	}

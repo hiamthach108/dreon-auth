@@ -115,7 +115,7 @@ func (s *AuthSvc) RefreshToken(ctx context.Context, req dto.RefreshTokenReq) (*d
 	return s.generateTokens(ctx, jwt.Payload{
 		UserID:       session.UserID,
 		IsSuperAdmin: session.IsSuperAdmin,
-		Email:        session.User.Email,
+		Email:        session.Email,
 	})
 }
 
@@ -151,6 +151,7 @@ func (s *AuthSvc) generateTokens(ctx context.Context, payload jwt.Payload) (*dto
 	refreshExp := time.Duration(s.cfg.Jwt.RefreshTokenExpiresIn) * time.Second
 	session, err := s.sessionRepo.Create(ctx, &model.Session{
 		UserID:       payload.UserID,
+		Email:        payload.Email,
 		RefreshToken: refreshToken,
 		ExpiresAt:    time.Now().Add(refreshExp),
 		IsSuperAdmin: payload.IsSuperAdmin,
@@ -197,10 +198,6 @@ func (s *AuthSvc) loginWithSuperAdmin(ctx context.Context, req dto.LoginReq) (*d
 		Email:        user.Email,
 	})
 
-	if err != nil {
-		return nil, errorx.Wrap(errorx.ErrInternal, err)
-	}
-	err = s.updateLastLoginAt(ctx, user.ID)
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
