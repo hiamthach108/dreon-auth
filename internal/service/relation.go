@@ -89,6 +89,8 @@ func (s *RelationSvc) GrantRelation(ctx context.Context, req dto.GrantRelationRe
 		return nil, errorx.Wrap(errorx.ErrGrantPermission, err)
 	}
 
+	go s.clearRelationTupleCache(created)
+
 	s.logger.Info(fmt.Sprintf("Relation granted: %s", created.String()))
 
 	return s.toRelationTupleResp(created), nil
@@ -125,6 +127,8 @@ func (s *RelationSvc) RevokeRelation(ctx context.Context, req dto.RevokeRelation
 	if err != nil {
 		return errorx.Wrap(errorx.ErrRevokePermission, err)
 	}
+
+	go s.clearRelationTupleCache(existing)
 
 	s.logger.Info(fmt.Sprintf("Relation revoked: %s", existing.String()))
 
@@ -185,6 +189,13 @@ func (s *RelationSvc) BulkRevokeRelations(ctx context.Context, req dto.BulkRevok
 func (s *RelationSvc) CheckRelation(ctx context.Context, req dto.CheckRelationReq) (*dto.CheckRelationResp, error) {
 
 	var allowed bool
+	cacheKey := s.buildCacheKey(&model.RelationTuple{
+		Namespace:        req.Namespace,
+		ObjectID:         req.ObjectID,
+		Relation:         req.Relation,
+		SubjectNamespace: req.SubjectNamespace,
+		SubjectObjectID:  req.SubjectObjectID,
+	})
 
 	err := s.cache.Get(s.buildCacheKey(&model.RelationTuple{
 		Namespace:        req.Namespace,
@@ -213,6 +224,12 @@ func (s *RelationSvc) CheckRelation(ctx context.Context, req dto.CheckRelationRe
 
 	resp := &dto.CheckRelationResp{
 		Allowed: allowed,
+	}
+
+	// set cache for the relation tuple
+	ttl := constant.CacheDefaultTTL
+	if err := s.cache.Set(cacheKey, resp, &ttl); err != nil {
+		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
 	if !allowed {
@@ -359,4 +376,9 @@ func (s *RelationSvc) toRelationTupleResp(tuple *model.RelationTuple) *dto.Relat
 // buildCacheKey builds a cache key for a relation tuple
 func (s *RelationSvc) buildCacheKey(tuple *model.RelationTuple) string {
 	return constant.CacheKeyPrefixRelationTuple + tuple.String()
+}
+
+func (s *RelationSvc) clearRelationTupleCache(tuple *model.RelationTuple) {
+	cacheKey := s.buildCacheKey(tuple)
+	s.cache.Delete(cacheKey)
 }

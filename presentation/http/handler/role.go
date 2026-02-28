@@ -44,7 +44,7 @@ func (h *RoleHandler) RegisterRoutes(g *echo.Group) {
 	// User role assignments - require super admin for system roles
 	g.POST("/assign", h.HandleAssignRoleToUser)
 	g.POST("/remove", h.HandleRemoveRoleFromUser)
-	g.GET("/user/:userId", h.HandleGetUserRoles)
+	g.GET("/user/:userId/permissions", h.HandleGetUserPermissions)
 }
 
 // HandleCreateRole creates a new role
@@ -172,18 +172,12 @@ func (h *RoleHandler) HandleRemoveRoleFromUser(c echo.Context) error {
 	return HandleSuccess(c, map[string]string{"message": "Role removed from user successfully"})
 }
 
-// HandleGetUserRoles retrieves all roles assigned to a user
-func (h *RoleHandler) HandleGetUserRoles(c echo.Context) error {
+// HandleGetUserPermissions retrieves all permissions assigned to a user
+func (h *RoleHandler) HandleGetUserPermissions(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID := c.Param("userId")
 
-	req, err := HandleValidateBind[dto.GetUserRolesReq](c)
-	if err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-	req.UserID = userID
-
-	result, err := h.roleSvc.GetUserRoles(ctx, req)
+	result, err := h.roleSvc.GetUserPermissions(ctx, userID)
 	if err != nil {
 		return HandleError(c, err)
 	}

@@ -165,3 +165,6 @@ func UserRoleRespFromModel(userRole *model.UserRole, role *model.Role) *UserRole
 	}
 	return r
 }
+
+// UserPermission
+type UserPermissions map[string]bool

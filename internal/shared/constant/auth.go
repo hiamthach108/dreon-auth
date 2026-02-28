@@ -46,3 +46,5 @@ const (
 	RoleEditor = "editor"
 	RoleUser   = "user"
 )
+
+const SystemProjectID = "system"

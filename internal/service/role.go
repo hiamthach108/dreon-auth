@@ -8,11 +8,11 @@ import (
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/model"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
+	"github.com/hiamthach108/dreon-auth/internal/shared/constant"
 	"github.com/hiamthach108/dreon-auth/internal/shared/permission"
+	"github.com/hiamthach108/dreon-auth/pkg/cache"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
 )
-
-const SystemProjectID = "system"
 
 type IRoleSvc interface {
 	// Role CRUD
@@ -26,6 +26,7 @@ type IRoleSvc interface {
 	AssignRoleToUser(ctx context.Context, req dto.AssignRoleToUserReq, isSuperAdmin bool) (*dto.UserRoleResp, error)
 	RemoveRoleFromUser(ctx context.Context, req dto.RemoveRoleFromUserReq, isSuperAdmin bool) error
 	GetUserRoles(ctx context.Context, req dto.GetUserRolesReq) ([]dto.UserRoleResp, error)
+	GetUserPermissions(ctx context.Context, userID string) (dto.UserPermissions, error)
 }
 
 type RoleSvc struct {
@@ -34,6 +35,7 @@ type RoleSvc struct {
 	userRoleRepo       repository.IUserRoleRepository
 	userRepo           repository.IUserRepository
 	permissionRegistry *permission.Registry
+	cache              cache.ICache
 }
 
 func NewRoleSvc(
@@ -42,6 +44,7 @@ func NewRoleSvc(
 	userRoleRepo repository.IUserRoleRepository,
 	userRepo repository.IUserRepository,
 	permissionRegistry *permission.Registry,
+	cache cache.ICache,
 ) IRoleSvc {
 	return &RoleSvc{
 		logger:             logger,
@@ -49,13 +52,14 @@ func NewRoleSvc(
 		userRoleRepo:       userRoleRepo,
 		userRepo:           userRepo,
 		permissionRegistry: permissionRegistry,
+		cache:              cache,
 	}
 }
 
 // CreateRole creates a new role
 func (s *RoleSvc) CreateRole(ctx context.Context, req dto.CreateRoleReq, isSuperAdmin bool) (*dto.RoleResp, error) {
 	// Validate system role creation
-	if req.ProjectID != nil && *req.ProjectID == SystemProjectID && !isSuperAdmin {
+	if req.ProjectID != nil && *req.ProjectID == constant.SystemProjectID && !isSuperAdmin {
 		return nil, errorx.New(errorx.ErrSystemRoleProtected, "Only super admins can create system roles")
 	}
 
@@ -102,7 +106,7 @@ func (s *RoleSvc) UpdateRole(ctx context.Context, roleID string, req dto.UpdateR
 	}
 
 	// Validate system role update
-	if role.ProjectID != nil && *role.ProjectID == SystemProjectID && !isSuperAdmin {
+	if role.ProjectID != nil && *role.ProjectID == constant.SystemProjectID && !isSuperAdmin {
 		return nil, errorx.New(errorx.ErrSystemRoleProtected, "Only super admins can update system roles")
 	}
 
@@ -136,7 +140,7 @@ func (s *RoleSvc) DeleteRole(ctx context.Context, roleID string, isSuperAdmin bo
 	}
 
 	// Validate system role deletion
-	if role.ProjectID != nil && *role.ProjectID == SystemProjectID && !isSuperAdmin {
+	if role.ProjectID != nil && *role.ProjectID == constant.SystemProjectID && !isSuperAdmin {
 		return errorx.New(errorx.ErrSystemRoleProtected, "Only super admins can delete system roles")
 	}
 
@@ -225,7 +229,7 @@ func (s *RoleSvc) AssignRoleToUser(ctx context.Context, req dto.AssignRoleToUser
 	}
 
 	// Validate system role assignment
-	if role.ProjectID != nil && *role.ProjectID == SystemProjectID && !isSuperAdmin {
+	if role.ProjectID != nil && *role.ProjectID == constant.SystemProjectID && !isSuperAdmin {
 		return nil, errorx.New(errorx.ErrSystemRoleProtected, "Only super admins can assign system roles")
 	}
 
@@ -250,6 +254,8 @@ func (s *RoleSvc) AssignRoleToUser(ctx context.Context, req dto.AssignRoleToUser
 		return nil, errorx.Wrap(errorx.ErrRoleAssignment, err)
 	}
 
+	go s.clearUserPermissionsCache(req.UserID)
+
 	s.logger.Info(fmt.Sprintf("Role assigned: user=%s, role=%s", req.UserID, req.RoleID))
 	return dto.UserRoleRespFromModel(created, role), nil
 }
@@ -263,7 +269,7 @@ func (s *RoleSvc) RemoveRoleFromUser(ctx context.Context, req dto.RemoveRoleFrom
 	}
 
 	// Validate system role removal
-	if role.ProjectID != nil && *role.ProjectID == SystemProjectID && !isSuperAdmin {
+	if role.ProjectID != nil && *role.ProjectID == constant.SystemProjectID && !isSuperAdmin {
 		return errorx.New(errorx.ErrSystemRoleProtected, "Only super admins can remove system roles")
 	}
 
@@ -279,6 +285,8 @@ func (s *RoleSvc) RemoveRoleFromUser(ctx context.Context, req dto.RemoveRoleFrom
 	if err := s.userRoleRepo.DeleteByUserIDAndRoleID(ctx, req.UserID, req.RoleID, req.ProjectID); err != nil {
 		return errorx.Wrap(errorx.ErrRoleAssignment, err)
 	}
+
+	go s.clearUserPermissionsCache(req.UserID)
 
 	s.logger.Info(fmt.Sprintf("Role removed: user=%s, role=%s", req.UserID, req.RoleID))
 
@@ -306,4 +314,54 @@ func (s *RoleSvc) GetUserRoles(ctx context.Context, req dto.GetUserRolesReq) ([]
 	}
 
 	return results, nil
+}
+
+// GetUserPermissions retrieves all permissions assigned to a user
+func (s *RoleSvc) GetUserPermissions(ctx context.Context, userID string) (dto.UserPermissions, error) {
+	// cache the permissions for the user
+	cacheKey := s.userPermissionsCacheKey(userID)
+	var permissions dto.UserPermissions
+	err := s.cache.Get(cacheKey, &permissions)
+	if err == nil {
+		return permissions, nil
+	} else if err != cache.ErrCacheNil {
+		return dto.UserPermissions{}, errorx.Wrap(errorx.ErrInternal, err)
+	}
+
+	userRoles, err := s.userRoleRepo.FindByUserID(ctx, userID)
+	if err != nil {
+		return nil, errorx.Wrap(errorx.ErrInternal, err)
+	}
+
+	// Get all permissions from the user roles and loop through each role permissions with the project ID
+	permissions = make(dto.UserPermissions)
+	for _, userRole := range userRoles {
+		for _, permissionCode := range model.PermissionsFromJSON(userRole.Role.Permissions) {
+			permissions[s.buildPermissionKey(permissionCode, userRole.ProjectID)] = true
+		}
+	}
+
+	ttl := constant.CacheDefaultTTL
+	if err := s.cache.Set(cacheKey, permissions, &ttl); err != nil {
+		return dto.UserPermissions{}, errorx.Wrap(errorx.ErrInternal, err)
+	}
+
+	return permissions, nil
+}
+
+func (s *RoleSvc) buildPermissionKey(permissionCode string, projectID *string) string {
+	projectKey := constant.SystemProjectID
+	if projectID != nil {
+		projectKey = *projectID
+	}
+	return fmt.Sprintf("%s/%s", projectKey, permissionCode)
+}
+
+func (s *RoleSvc) userPermissionsCacheKey(userID string) string {
+	return fmt.Sprintf("user_permissions:%s", userID)
+}
+
+func (s *RoleSvc) clearUserPermissionsCache(userID string) {
+	cacheKey := s.userPermissionsCacheKey(userID)
+	s.cache.Delete(cacheKey)
 }
