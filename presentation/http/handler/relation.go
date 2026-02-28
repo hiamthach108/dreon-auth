@@ -43,12 +43,8 @@ func (h *RelationHandler) RegisterRoutes(g *echo.Group) {
 // HandleGrantRelation grants a relation to a subject
 func (h *RelationHandler) HandleGrantRelation(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.GrantRelationReq
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.GrantRelationReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -63,12 +59,8 @@ func (h *RelationHandler) HandleGrantRelation(c echo.Context) error {
 // HandleRevokeRelation revokes a relation from a subject
 func (h *RelationHandler) HandleRevokeRelation(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.RevokeRelationReq
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.RevokeRelationReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -82,12 +74,8 @@ func (h *RelationHandler) HandleRevokeRelation(c echo.Context) error {
 // HandleBulkGrantRelations grants multiple relations
 func (h *RelationHandler) HandleBulkGrantRelations(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.BulkGrantRelationReq
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.BulkGrantRelationReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -102,12 +90,8 @@ func (h *RelationHandler) HandleBulkGrantRelations(c echo.Context) error {
 // HandleBulkRevokeRelations revokes multiple relations
 func (h *RelationHandler) HandleBulkRevokeRelations(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.BulkRevokeRelationReq
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.BulkRevokeRelationReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -121,12 +105,8 @@ func (h *RelationHandler) HandleBulkRevokeRelations(c echo.Context) error {
 // HandleCheckRelation checks if a subject has a specific relation
 func (h *RelationHandler) HandleCheckRelation(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.CheckRelationReq
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.CheckRelationReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -141,8 +121,8 @@ func (h *RelationHandler) HandleCheckRelation(c echo.Context) error {
 // HandleListRelations lists relations with optional filters
 func (h *RelationHandler) HandleListRelations(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.ListRelationsReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.ListRelationsReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -157,12 +137,8 @@ func (h *RelationHandler) HandleListRelations(c echo.Context) error {
 // HandleExpandRelation expands a relation to get all subjects
 func (h *RelationHandler) HandleExpandRelation(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.ExpandRelationReq
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.ExpandRelationReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 

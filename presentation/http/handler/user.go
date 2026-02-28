@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/hiamthach108/dreon-auth/internal/dto"
@@ -31,16 +30,16 @@ func NewUserHandler(userSvc service.IUserSvc, logger logger.ILogger, verifyJWT e
 // RegisterRoutes registers user routes on the given group and applies JWT verification middleware.
 func (h *UserHandler) RegisterRoutes(g *echo.Group) {
 	g.Use(echo.MiddlewareFunc(h.verifyJWT))
-	g.GET("", h.List)
-	g.GET("/:id", h.GetByID)
-	g.POST("", h.Create)
-	g.PUT("/:id", h.Update)
-	g.DELETE("/:id", h.Delete)
+	g.GET("", h.HandleListUsers)
+	g.GET("/:id", h.HandleGetUserByID)
+	g.POST("", h.HandleCreateUser)
+	g.PUT("/:id", h.HandleUpdateUser)
+	g.DELETE("/:id", h.HandleDeleteUser)
 }
 
 // List returns a paginated list of users.
 // Query: page (default 1), pageSize (default 10, max 100).
-func (h *UserHandler) List(c echo.Context) error {
+func (h *UserHandler) HandleListUsers(c echo.Context) error {
 	ctx := c.Request().Context()
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	pageSize, _ := strconv.Atoi(c.QueryParam("pageSize"))
@@ -60,7 +59,7 @@ func (h *UserHandler) List(c echo.Context) error {
 }
 
 // GetByID returns a user by ID.
-func (h *UserHandler) GetByID(c echo.Context) error {
+func (h *UserHandler) HandleGetUserByID(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 	if id == "" {
@@ -76,11 +75,11 @@ func (h *UserHandler) GetByID(c echo.Context) error {
 }
 
 // Create creates a new user.
-func (h *UserHandler) Create(c echo.Context) error {
+func (h *UserHandler) HandleCreateUser(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req dto.CreateUserReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.CreateUserReq](c)
+	if err != nil {
 		h.logger.Error("Failed to bind create user request", "error", err)
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -90,23 +89,19 @@ func (h *UserHandler) Create(c echo.Context) error {
 		h.logger.Error("Failed to create user", "error", err)
 		return HandleError(c, err)
 	}
-	return c.JSON(http.StatusCreated, BaseResp{
-		Code:    http.StatusCreated,
-		Message: "success",
-		Data:    user,
-	})
+	return HandleSuccess(c, user)
 }
 
 // Update updates a user by ID.
-func (h *UserHandler) Update(c echo.Context) error {
+func (h *UserHandler) HandleUpdateUser(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 	if id == "" {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, nil))
 	}
 
-	var req dto.UpdateUserReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.UpdateUserReq](c)
+	if err != nil {
 		h.logger.Error("Failed to bind update user request", "error", err)
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -120,7 +115,7 @@ func (h *UserHandler) Update(c echo.Context) error {
 }
 
 // Delete deletes a user by ID.
-func (h *UserHandler) Delete(c echo.Context) error {
+func (h *UserHandler) HandleDeleteUser(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 	if id == "" {

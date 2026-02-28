@@ -34,8 +34,8 @@ func (h *AuthHandler) RegisterRoutes(g *echo.Group) {
 
 func (h *AuthHandler) HandleLogin(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.LoginReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.LoginReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -48,8 +48,8 @@ func (h *AuthHandler) HandleLogin(c echo.Context) error {
 
 func (h *AuthHandler) HandleRegister(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.RegisterReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.RegisterReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -62,8 +62,8 @@ func (h *AuthHandler) HandleRegister(c echo.Context) error {
 
 func (h *AuthHandler) HandleRefreshToken(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.RefreshTokenReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.RefreshTokenReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -76,12 +76,12 @@ func (h *AuthHandler) HandleRefreshToken(c echo.Context) error {
 
 func (h *AuthHandler) HandleLogout(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.LogoutReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.LogoutReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
-	err := h.authSvc.Logout(ctx, req)
+	err = h.authSvc.Logout(ctx, req)
 	if err != nil {
 		return HandleError(c, err)
 	}

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/hiamthach108/dreon-auth/internal/dto"
@@ -34,16 +33,16 @@ func NewProjectHandler(projectSvc service.IProjectSvc, logger logger.ILogger, ve
 func (h *ProjectHandler) RegisterRoutes(g *echo.Group) {
 	g.Use(echo.MiddlewareFunc(h.verifyJWT))
 	g.Use(echo.MiddlewareFunc(h.verifySuperAdmin))
-	g.GET("", h.List)
-	g.GET("/:id", h.GetByID)
-	g.POST("", h.Create)
-	g.PUT("/:id", h.Update)
-	g.DELETE("/:id", h.Delete)
+	g.GET("", h.HandleListProjects)
+	g.GET("/:id", h.HandleGetProjectByID)
+	g.POST("", h.HandleCreateProject)
+	g.PUT("/:id", h.HandleUpdateProject)
+	g.DELETE("/:id", h.HandleDeleteProject)
 }
 
 // List returns a paginated list of projects.
 // Query: page (default 1), pageSize (default 10, max 100).
-func (h *ProjectHandler) List(c echo.Context) error {
+func (h *ProjectHandler) HandleListProjects(c echo.Context) error {
 	ctx := c.Request().Context()
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	pageSize, _ := strconv.Atoi(c.QueryParam("pageSize"))
@@ -63,7 +62,7 @@ func (h *ProjectHandler) List(c echo.Context) error {
 }
 
 // GetByID returns a project by ID.
-func (h *ProjectHandler) GetByID(c echo.Context) error {
+func (h *ProjectHandler) HandleGetProjectByID(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 	if id == "" {
@@ -79,11 +78,11 @@ func (h *ProjectHandler) GetByID(c echo.Context) error {
 }
 
 // Create creates a new project.
-func (h *ProjectHandler) Create(c echo.Context) error {
+func (h *ProjectHandler) HandleCreateProject(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req dto.CreateProjectReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.CreateProjectReq](c)
+	if err != nil {
 		h.logger.Error("Failed to bind create project request", "error", err)
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -93,23 +92,19 @@ func (h *ProjectHandler) Create(c echo.Context) error {
 		h.logger.Error("Failed to create project", "error", err)
 		return HandleError(c, err)
 	}
-	return c.JSON(http.StatusCreated, BaseResp{
-		Code:    http.StatusCreated,
-		Message: "success",
-		Data:    project,
-	})
+	return HandleSuccess(c, project)
 }
 
 // Update updates a project by ID.
-func (h *ProjectHandler) Update(c echo.Context) error {
+func (h *ProjectHandler) HandleUpdateProject(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 	if id == "" {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, nil))
 	}
 
-	var req dto.UpdateProjectReq
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.UpdateProjectReq](c)
+	if err != nil {
 		h.logger.Error("Failed to bind update project request", "error", err)
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -123,7 +118,7 @@ func (h *ProjectHandler) Update(c echo.Context) error {
 }
 
 // Delete deletes a project by ID.
-func (h *ProjectHandler) Delete(c echo.Context) error {
+func (h *ProjectHandler) HandleDeleteProject(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 	if id == "" {

@@ -50,13 +50,8 @@ func (h *RoleHandler) RegisterRoutes(g *echo.Group) {
 // HandleCreateRole creates a new role
 func (h *RoleHandler) HandleCreateRole(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.CreateRoleReq
-	
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.CreateRoleReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -89,13 +84,8 @@ func (h *RoleHandler) HandleGetRole(c echo.Context) error {
 func (h *RoleHandler) HandleUpdateRole(c echo.Context) error {
 	ctx := c.Request().Context()
 	roleID := c.Param("id")
-	var req dto.UpdateRoleReq
-
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.UpdateRoleReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -130,9 +120,8 @@ func (h *RoleHandler) HandleDeleteRole(c echo.Context) error {
 // HandleListRoles lists roles with optional filters
 func (h *RoleHandler) HandleListRoles(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.ListRolesReq
-
-	if err := c.Bind(&req); err != nil {
+	req, err := BindAndValidate[dto.ListRolesReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -147,13 +136,8 @@ func (h *RoleHandler) HandleListRoles(c echo.Context) error {
 // HandleAssignRoleToUser assigns a role to a user
 func (h *RoleHandler) HandleAssignRoleToUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.AssignRoleToUserReq
-
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.AssignRoleToUserReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -172,13 +156,8 @@ func (h *RoleHandler) HandleAssignRoleToUser(c echo.Context) error {
 // HandleRemoveRoleFromUser removes a role from a user
 func (h *RoleHandler) HandleRemoveRoleFromUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req dto.RemoveRoleFromUserReq
-
-	if err := c.Bind(&req); err != nil {
-		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
-	}
-
-	if err := c.Validate(&req); err != nil {
+	req, err := BindAndValidate[dto.RemoveRoleFromUserReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
 
@@ -197,13 +176,12 @@ func (h *RoleHandler) HandleRemoveRoleFromUser(c echo.Context) error {
 func (h *RoleHandler) HandleGetUserRoles(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID := c.Param("userId")
-	
-	var req dto.GetUserRolesReq
-	req.UserID = userID
-	
-	if err := c.Bind(&req); err != nil {
+
+	req, err := BindAndValidate[dto.GetUserRolesReq](c)
+	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
+	req.UserID = userID
 
 	result, err := h.roleSvc.GetUserRoles(ctx, req)
 	if err != nil {
