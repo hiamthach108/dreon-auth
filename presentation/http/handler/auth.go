@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/hiamthach108/dreon-auth/internal/dto"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/service"
@@ -28,6 +30,9 @@ func (h *AuthHandler) RegisterRoutes(g *echo.Group) {
 	g.POST("/register", h.HandleRegister)
 	g.POST("/refresh-token", h.HandleRefreshToken)
 	g.POST("/logout", h.HandleLogout)
+	g.GET("/google/callback", h.HandleGoogleOAuthCallback)
+	g.POST("/session-from-state", h.HandleSessionFromState)
+
 	g.Use(echo.MiddlewareFunc(h.verifyJWT))
 	g.GET("/session", h.HandleGetSession)
 }
@@ -95,4 +100,28 @@ func (h *AuthHandler) HandleGetSession(c echo.Context) error {
 		return HandleError(c, errorx.New(errorx.ErrUnauthorized, "missing payload"))
 	}
 	return HandleSuccess(c, payload)
+}
+
+func (h *AuthHandler) HandleGoogleOAuthCallback(c echo.Context) error {
+	ctx := c.Request().Context()
+	code := c.QueryParam("code")
+	state := c.QueryParam("state")
+	redirectURL, err := h.authSvc.ExchangeGoogleCode(ctx, code, state)
+	if err != nil {
+		return HandleError(c, err)
+	}
+	return c.Redirect(http.StatusFound, redirectURL)
+}
+
+func (h *AuthHandler) HandleSessionFromState(c echo.Context) error {
+	ctx := c.Request().Context()
+	req, err := HandleValidateBind[dto.SessionFromStateReq](c)
+	if err != nil {
+		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
+	}
+	result, err := h.authSvc.SessionFromState(ctx, req)
+	if err != nil {
+		return HandleError(c, err)
+	}
+	return HandleSuccess(c, result)
 }

@@ -52,6 +52,12 @@ type AppConfig struct {
 	Permissions struct {
 		FilePath string `env:"PERMISSIONS_FILE"`
 	}
+
+	Google struct {
+		ClientID     string `env:"GOOGLE_CLIENT_ID"`
+		ClientSecret string `env:"GOOGLE_CLIENT_SECRET"`
+		RedirectURL  string `env:"GOOGLE_REDIRECT_URL"`
+	}
 }
 
 func NewAppConfig() (*AppConfig, error) {

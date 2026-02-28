@@ -44,6 +44,7 @@ const (
 	ErrSystemRoleProtected AppErrCode = 1028
 	ErrInvalidRole         AppErrCode = 1029
 	ErrRoleAssignment      AppErrCode = 1030
+	ErrInvalidRefreshState AppErrCode = 1031
 )
 
 var errorMsgs = map[AppErrCode]string{
@@ -66,6 +67,7 @@ var errorMsgs = map[AppErrCode]string{
 	ErrInvalidPassword:     "Invalid password",
 	ErrInvalidRefreshToken: "Invalid refresh token",
 	ErrRefreshTokenExpired: "Refresh token expired",
+	ErrInvalidRefreshState: "Invalid or expired refresh state",
 
 	ErrProjectNotFound: "Project not found",
 	ErrProjectConflict: "Project with this code already exists",

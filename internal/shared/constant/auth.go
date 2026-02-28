@@ -1,5 +1,10 @@
 package constant
 
+import "time"
+
+// RefreshStateTTL is how long a Google OAuth refresh state is valid in cache.
+const RefreshStateTTL = 10 * time.Minute
+
 type UserStatus string
 
 const (
