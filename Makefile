@@ -15,4 +15,7 @@ install-lint:
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.60.0
 	@echo "golangci-lint installed successfully!"
 
-.PHONY: test run lint lint-fix install-lint
+buf-gen:
+	cd presentation/grpc && buf dep update && buf generate
+
+.PHONY: test run lint lint-fix install-lint buf-gen

@@ -14,8 +14,9 @@ type AppConfig struct {
 		Version string `env:"APP_VERSION"`
 	}
 	Server struct {
-		Host string `env:"HTTP_HOST"`
-		Port string `env:"HTTP_PORT"`
+		Host     string `env:"HTTP_HOST"`
+		Port     string `env:"HTTP_PORT"`
+		GRPCPort string `env:"GRPC_PORT"`
 	}
 	Logger struct {
 		Level string `env:"LOG_LEVEL"`

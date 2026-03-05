@@ -15,6 +15,7 @@ dreon-auth provides user management, JWT (RS256) issue/verify, session handling,
 - **Redis** – Session store, cache, OAuth state
 - **JWT (RS256)** – Asymmetric token signing and verification
 - **OAuth2 (Google)** – Sign-in with Google
+- **gRPC** – Internal API for relation tuples and permission checks (AuthInternalService)
 - **Docker** – Containerization and orchestration
 
 ### High-Level Design
@@ -31,6 +32,7 @@ dreon-auth provides user management, JWT (RS256) issue/verify, session handling,
 │  • Auth: login, register, refresh, logout, Google OAuth  │
 │  • Users, Projects, Roles, Permissions                   │
 │  • Relation tuples: grant, revoke, check, expand         │
+│  • gRPC: GrantRelationTuple, CheckPermission, GetUserPermissions │
 └─────────────────────────────────────────────────────────┘
        │              │
        ▼              ▼
@@ -57,6 +59,7 @@ dreon-auth provides user management, JWT (RS256) issue/verify, session handling,
 - ✅ **Permissions** – Registry from config file (`PERMISSIONS_FILE`), list permissions, user permission checks
 - ✅ **Relation tuples (Zanzibar-style)** – Grant/revoke/check/expand relations (`object#relation@subject`), bulk grant/revoke, optional expiry
 - ✅ **REST API** – Echo, validation, error handling
+- ✅ **gRPC API** – Internal `AuthInternalService` for relation tuples and user permissions (server + generated client)
 - ✅ **Docker** – docker-compose for local dev
 
 ## 📡 API Overview
@@ -71,6 +74,8 @@ Base URL: `http://localhost:8080/api/v1`
 | **Roles**  | `/roles`      | CRUD roles, assign/remove role to user, get user permissions |
 | **Permissions** | `/permissions` | List permission registry |
 | **Relations** | `/relations` | Grant, revoke, check, list, expand, bulk-grant, bulk-revoke (JWT required) |
+
+**gRPC** (internal): default `localhost:9090` — see [Using gRPC](#-using-grpc) below.
 
 ### Auth Endpoints (no JWT unless noted)
 
@@ -99,6 +104,7 @@ docker-compose up -d
 ```
 
 - API: http://localhost:8080  
+- gRPC: localhost:9090 (set `GRPC_PORT` in env if needed)  
 - PostgreSQL: localhost:5432  
 - Redis: localhost:6379  
 
@@ -415,6 +421,93 @@ For more detail and examples, see [docs/RELATION_TUPLES_API.md](docs/RELATION_TU
 
 ---
 
+## 🔌 Using gRPC
+
+The service exposes an **internal gRPC API** (`AuthInternalService`) for relation-tuple management and permission checks, intended for server-to-server use (e.g. other backend services in your system).
+
+### Configuration
+
+- **Port:** Set `GRPC_PORT` in `.env` (default: `9090`). The server listens on `HTTP_HOST:GRPC_PORT`.
+- **Proto & codegen:** Protos live in `presentation/grpc/proto/`. Generate Go code with:
+  ```bash
+  make buf-gen
+  # or: cd presentation/grpc && buf dep update && buf generate
+  ```
+
+### RPCs
+
+| RPC | Description |
+|-----|-------------|
+| **GrantRelationTuple** | Create a Zanzibar-style relation tuple (same semantics as `POST /relations/grant`). |
+| **CheckPermission** | Check whether a subject has a relation on an object (same as `POST /relations/check`). |
+| **GetUserPermissions** | Get the permission map for a user (same as `GET /roles/user/:userId/permissions`). |
+
+Request/response types mirror the REST aggregates (namespace, object_id, relation, subject_*, optional expires_at, etc.). See `presentation/grpc/proto/auth_internal.proto`.
+
+### Using the internal client (Go)
+
+Other Go services can call this API using the **internal gRPC client**:
+
+```go
+import (
+    "context"
+    clientgrpc "github.com/hiamthach108/dreon-auth/internal/client/grpc"
+    authinternal "github.com/hiamthach108/dreon-auth/presentation/grpc/gen/proto"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+)
+
+// From target address
+conn, _ := grpc.NewClient("localhost:9090", grpc.WithTransportCredentials(insecure.NewCredentials()))
+defer conn.Close()
+
+client := clientgrpc.NewAuthInternalClientFromConn(conn)
+defer client.Close()
+
+// Grant a relation
+resp, err := client.Client().GrantRelationTuple(ctx, &authinternal.GrantRelationTupleRequest{
+    Namespace:        "document",
+    ObjectId:         "readme",
+    Relation:         "viewer",
+    SubjectNamespace: "user",
+    SubjectObjectId:  "alice-uuid",
+})
+
+// Check permission
+check, err := client.Client().CheckPermission(ctx, &authinternal.CheckPermissionRequest{
+    Namespace: "document", ObjectId: "readme", Relation: "viewer",
+    SubjectNamespace: "user", SubjectObjectId: "alice-uuid",
+})
+// check.Allowed
+
+// User permissions
+perms, err := client.Client().GetUserPermissions(ctx, &authinternal.GetUserPermissionsRequest{UserId: "user-uuid"})
+// perms.Permissions map[string]bool
+```
+
+For app-config–based dial (e.g. with Fx), use `clientgrpc.NewAuthInternalClientFromAppConfig(ctx, cfg, nil)` so the target is derived from `HTTP_HOST` and `GRPC_PORT`.
+
+### Testing with grpcurl (optional)
+
+```bash
+# List services
+grpcurl -plaintext localhost:9090 list
+
+# Describe AuthInternalService
+grpcurl -plaintext localhost:9090 describe dreon.auth.internal.v1.AuthInternalService
+
+# Example: CheckPermission
+grpcurl -plaintext -d '{
+  "namespace": "document",
+  "object_id": "readme",
+  "relation": "viewer",
+  "subject_namespace": "user",
+  "subject_object_id": "alice-uuid"
+}' localhost:9090 dreon.auth.internal.v1.AuthInternalService/CheckPermission
+```
+
+---
+
 ## 📊 Auth Flows
 
 ### Email login
@@ -455,7 +548,10 @@ dreon-auth/
 │   ├── service/           # Business logic (auth, user, project, role, relation)
 │   └── shared/            # Constants, permission registry, helpers
 ├── pkg/                    # Cache, JWT, logger, …
-├── presentation/http/     # Echo handlers, middleware
+├── presentation/
+│   ├── http/               # Echo handlers, middleware
+│   └── grpc/               # gRPC server, proto, generated code (AuthInternalService)
+├── internal/client/grpc/   # Internal gRPC client for AuthInternalService
 ├── docs/                   # RELATION_TUPLES_API.md, etc.
 ├── docker-compose.yml
 ├── Dockerfile

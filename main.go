@@ -2,13 +2,14 @@ package main
 
 import (
 	"github.com/hiamthach108/dreon-auth/config"
-	"github.com/hiamthach108/dreon-auth/internal/shared/permission"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
 	"github.com/hiamthach108/dreon-auth/internal/service"
+	"github.com/hiamthach108/dreon-auth/internal/shared/permission"
 	"github.com/hiamthach108/dreon-auth/pkg/cache"
 	"github.com/hiamthach108/dreon-auth/pkg/database"
 	"github.com/hiamthach108/dreon-auth/pkg/jwt"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
+	grpcserver "github.com/hiamthach108/dreon-auth/presentation/grpc"
 	"github.com/hiamthach108/dreon-auth/presentation/http"
 	"github.com/hiamthach108/dreon-auth/presentation/http/handler"
 	echomw "github.com/hiamthach108/dreon-auth/presentation/http/middleware"
@@ -56,8 +57,13 @@ func main() {
 			repository.NewRelationTupleRepository,
 			repository.NewRoleRepository,
 			repository.NewUserRoleRepository,
+
+			// gRPC server (AuthInternal: relation tuples + permission checks)
+			grpcserver.NewAuthInternalServer,
+			grpcserver.NewGRPCServer,
 		),
 		fx.Invoke(http.RegisterHooks),
+		fx.Invoke(grpcserver.RegisterHooks),
 	)
 
 	app.Run()

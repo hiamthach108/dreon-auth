@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package dreon.auth.internal.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/hiamthach108/dreon-auth/presentation/grpc/gen/proto;authinternal";
+
+// AuthInternalService exposes internal gRPC RPCs for relation-tuple management
+// and permission checks. Not intended for public consumption.
+service AuthInternalService {
+  // GrantRelationTuple creates a Zanzibar-style relation tuple.
+  rpc GrantRelationTuple(GrantRelationTupleRequest) returns (GrantRelationTupleResponse);
+
+  // CheckPermission checks whether a subject has a specific relation on an object.
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+
+  // GetUserPermissions gets the permissions for a user.
+  rpc GetUserPermissions(GetUserPermissionsRequest) returns (GetUserPermissionsResponse);
+}
+
+// GrantRelationTupleRequest mirrors aggregate.GrantRelationReq.
+message GrantRelationTupleRequest {
+  string namespace         = 1;
+  string object_id         = 2;
+  string relation          = 3;
+  string subject_namespace = 4;
+  string subject_object_id = 5;
+  // Optional: for userset subjects (e.g. group:eng#member).
+  optional string subject_relation = 6;
+  // Optional: tuple expires after this time.
+  optional google.protobuf.Timestamp expires_at = 7;
+}
+
+// GrantRelationTupleResponse mirrors aggregate.RelationTupleResp.
+message GrantRelationTupleResponse {
+  string id                = 1;
+  string namespace         = 2;
+  string object_id         = 3;
+  string relation          = 4;
+  string subject_namespace = 5;
+  string subject_object_id = 6;
+  string subject_relation  = 7;
+  bool   is_active         = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  optional google.protobuf.Timestamp expires_at = 11;
+}
+
+// CheckPermissionRequest mirrors aggregate.CheckRelationReq.
+message CheckPermissionRequest {
+  string namespace         = 1;
+  string object_id         = 2;
+  string relation          = 3;
+  string subject_namespace = 4;
+  string subject_object_id = 5;
+}
+
+// CheckPermissionResponse mirrors aggregate.CheckRelationResp.
+message CheckPermissionResponse {
+  bool   allowed = 1;
+  // Human-readable reason when allowed is false.
+  optional string reason = 2;
+}
+
+message GetUserPermissionsRequest {
+  string user_id = 1;
+}
+
+message GetUserPermissionsResponse {
+  map<string, bool> permissions = 1;
+}
