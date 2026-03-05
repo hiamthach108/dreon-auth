@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/hiamthach108/dreon-auth/internal/dto"
+	"github.com/hiamthach108/dreon-auth/internal/aggregate"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
 	"github.com/hiamthach108/dreon-auth/internal/shared/helper"
@@ -13,10 +13,10 @@ import (
 
 // IProjectSvc defines the contract for project operations.
 type IProjectSvc interface {
-	Create(ctx context.Context, req dto.CreateProjectReq) (*dto.ProjectDto, error)
-	GetByID(ctx context.Context, id string) (*dto.ProjectDto, error)
-	List(ctx context.Context, page, pageSize int) (*dto.PaginationResp[dto.ProjectDto], error)
-	Update(ctx context.Context, id string, req dto.UpdateProjectReq) (*dto.ProjectDto, error)
+	Create(ctx context.Context, req aggregate.CreateProjectReq) (*aggregate.ProjectDto, error)
+	GetByID(ctx context.Context, id string) (*aggregate.ProjectDto, error)
+	List(ctx context.Context, page, pageSize int) (*aggregate.PaginationResp[aggregate.ProjectDto], error)
+	Update(ctx context.Context, id string, req aggregate.UpdateProjectReq) (*aggregate.ProjectDto, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -35,7 +35,7 @@ func NewProjectSvc(logger logger.ILogger, repo repository.IProjectRepository) IP
 }
 
 // Create creates a new project.
-func (s *ProjectSvc) Create(ctx context.Context, req dto.CreateProjectReq) (*dto.ProjectDto, error) {
+func (s *ProjectSvc) Create(ctx context.Context, req aggregate.CreateProjectReq) (*aggregate.ProjectDto, error) {
 
 	model := req.ToModel()
 	model.Code = s.generateCode(req.Name)
@@ -45,24 +45,24 @@ func (s *ProjectSvc) Create(ctx context.Context, req dto.CreateProjectReq) (*dto
 		return nil, errorx.Wrap(errorx.ErrCreateProject, err)
 	}
 
-	var resp dto.ProjectDto
+	var resp aggregate.ProjectDto
 	resp.FromModel(created)
 	return &resp, nil
 }
 
 // GetByID returns a project by ID.
-func (s *ProjectSvc) GetByID(ctx context.Context, id string) (*dto.ProjectDto, error) {
+func (s *ProjectSvc) GetByID(ctx context.Context, id string) (*aggregate.ProjectDto, error) {
 	p := s.repo.FindOneById(ctx, id)
 	if p == nil {
 		return nil, errorx.Wrap(errorx.ErrProjectNotFound, nil)
 	}
-	var resp dto.ProjectDto
+	var resp aggregate.ProjectDto
 	resp.FromModel(p)
 	return &resp, nil
 }
 
 // List returns a paginated list of projects.
-func (s *ProjectSvc) List(ctx context.Context, page, pageSize int) (*dto.PaginationResp[dto.ProjectDto], error) {
+func (s *ProjectSvc) List(ctx context.Context, page, pageSize int) (*aggregate.PaginationResp[aggregate.ProjectDto], error) {
 	if page < 1 {
 		page = 1
 	}
@@ -77,15 +77,15 @@ func (s *ProjectSvc) List(ctx context.Context, page, pageSize int) (*dto.Paginat
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
-	items := make([]dto.ProjectDto, 0, len(projects))
+	items := make([]aggregate.ProjectDto, 0, len(projects))
 	for i := range projects {
-		var d dto.ProjectDto
+		var d aggregate.ProjectDto
 		d.FromModel(&projects[i])
 		items = append(items, d)
 	}
 
 	hasNext := int64(offset+len(projects)) < total
-	return &dto.PaginationResp[dto.ProjectDto]{
+	return &aggregate.PaginationResp[aggregate.ProjectDto]{
 		Total:    total,
 		Page:     page,
 		PageSize: pageSize,
@@ -95,7 +95,7 @@ func (s *ProjectSvc) List(ctx context.Context, page, pageSize int) (*dto.Paginat
 }
 
 // Update updates a project by ID (partial update).
-func (s *ProjectSvc) Update(ctx context.Context, id string, req dto.UpdateProjectReq) (*dto.ProjectDto, error) {
+func (s *ProjectSvc) Update(ctx context.Context, id string, req aggregate.UpdateProjectReq) (*aggregate.ProjectDto, error) {
 	p := s.repo.FindOneById(ctx, id)
 	if p == nil {
 		return nil, errorx.Wrap(errorx.ErrProjectNotFound, nil)
@@ -103,7 +103,7 @@ func (s *ProjectSvc) Update(ctx context.Context, id string, req dto.UpdateProjec
 
 	updated, fields := req.ToModelAndFields()
 	if len(fields) == 0 {
-		var resp dto.ProjectDto
+		var resp aggregate.ProjectDto
 		resp.FromModel(p)
 		return &resp, nil
 	}
@@ -115,11 +115,11 @@ func (s *ProjectSvc) Update(ctx context.Context, id string, req dto.UpdateProjec
 
 	updatedProject := s.repo.FindOneById(ctx, id)
 	if updatedProject == nil {
-		var resp dto.ProjectDto
+		var resp aggregate.ProjectDto
 		resp.FromModel(p)
 		return &resp, nil
 	}
-	var resp dto.ProjectDto
+	var resp aggregate.ProjectDto
 	resp.FromModel(updatedProject)
 	return &resp, nil
 }

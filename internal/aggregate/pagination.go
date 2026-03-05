@@ -1,4 +1,4 @@
-package dto
+package aggregate
 
 type PaginationReq struct {
 	Page     int     `form:"page" json:"page" validate:"gte=1"`

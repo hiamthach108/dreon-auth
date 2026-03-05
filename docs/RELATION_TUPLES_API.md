@@ -267,7 +267,7 @@ func (s *DocumentService) UpdateDocument(ctx context.Context, docID string, req 
     userID := ctx.Value("user_id").(string)
     
     // Check if user has editor relation
-    resp, err := s.relationSvc.CheckRelation(ctx, dto.CheckRelationReq{
+    resp, err := s.relationSvc.CheckRelation(ctx, aggregate.CheckRelationReq{
         Namespace:        "document",
         ObjectID:         docID,
         Relation:         "editor",
@@ -296,7 +296,7 @@ func (s *DocumentService) CreateDocument(ctx context.Context, req CreateDocReq) 
     }
     
     // Grant owner relation to creator
-    _, err = s.relationSvc.GrantRelation(ctx, dto.GrantRelationReq{
+    _, err = s.relationSvc.GrantRelation(ctx, aggregate.GrantRelationReq{
         Namespace:        "document",
         ObjectID:         doc.ID,
         Relation:         "owner",
@@ -338,7 +338,7 @@ func (s *UserService) DeleteUser(ctx context.Context, userID string) error {
     }
     
     // Relation: Check if user has specific relation to this resource
-    canDelete, _ := s.relationSvc.CheckRelation(ctx, dto.CheckRelationReq{
+    canDelete, _ := s.relationSvc.CheckRelation(ctx, aggregate.CheckRelationReq{
         Namespace:        "user",
         ObjectID:         userID,
         Relation:         "admin",

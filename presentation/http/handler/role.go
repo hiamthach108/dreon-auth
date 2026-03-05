@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/hiamthach108/dreon-auth/internal/dto"
+	"github.com/hiamthach108/dreon-auth/internal/aggregate"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/service"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
@@ -50,7 +50,7 @@ func (h *RoleHandler) RegisterRoutes(g *echo.Group) {
 // HandleCreateRole creates a new role
 func (h *RoleHandler) HandleCreateRole(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.CreateRoleReq](c)
+	req, err := HandleValidateBind[aggregate.CreateRoleReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -84,7 +84,7 @@ func (h *RoleHandler) HandleGetRole(c echo.Context) error {
 func (h *RoleHandler) HandleUpdateRole(c echo.Context) error {
 	ctx := c.Request().Context()
 	roleID := c.Param("id")
-	req, err := HandleValidateBind[dto.UpdateRoleReq](c)
+	req, err := HandleValidateBind[aggregate.UpdateRoleReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -120,7 +120,7 @@ func (h *RoleHandler) HandleDeleteRole(c echo.Context) error {
 // HandleListRoles lists roles with optional filters
 func (h *RoleHandler) HandleListRoles(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.ListRolesReq](c)
+	req, err := HandleValidateBind[aggregate.ListRolesReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -136,7 +136,7 @@ func (h *RoleHandler) HandleListRoles(c echo.Context) error {
 // HandleAssignRoleToUser assigns a role to a user
 func (h *RoleHandler) HandleAssignRoleToUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.AssignRoleToUserReq](c)
+	req, err := HandleValidateBind[aggregate.AssignRoleToUserReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -156,7 +156,7 @@ func (h *RoleHandler) HandleAssignRoleToUser(c echo.Context) error {
 // HandleRemoveRoleFromUser removes a role from a user
 func (h *RoleHandler) HandleRemoveRoleFromUser(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.RemoveRoleFromUserReq](c)
+	req, err := HandleValidateBind[aggregate.RemoveRoleFromUserReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}

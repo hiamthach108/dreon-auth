@@ -3,7 +3,7 @@ package handler
 import (
 	"strconv"
 
-	"github.com/hiamthach108/dreon-auth/internal/dto"
+	"github.com/hiamthach108/dreon-auth/internal/aggregate"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/service"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
@@ -81,7 +81,7 @@ func (h *ProjectHandler) HandleGetProjectByID(c echo.Context) error {
 func (h *ProjectHandler) HandleCreateProject(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	req, err := HandleValidateBind[dto.CreateProjectReq](c)
+	req, err := HandleValidateBind[aggregate.CreateProjectReq](c)
 	if err != nil {
 		h.logger.Error("Failed to bind create project request", "error", err)
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
@@ -103,7 +103,7 @@ func (h *ProjectHandler) HandleUpdateProject(c echo.Context) error {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, nil))
 	}
 
-	req, err := HandleValidateBind[dto.UpdateProjectReq](c)
+	req, err := HandleValidateBind[aggregate.UpdateProjectReq](c)
 	if err != nil {
 		h.logger.Error("Failed to bind update project request", "error", err)
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))

@@ -2,7 +2,7 @@ test:
 	go test ./... -v
 
 run:
-	go run cmd/main.go
+	go run main.go
 
 lint:
 	golangci-lint run

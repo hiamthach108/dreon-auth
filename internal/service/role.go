@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hiamthach108/dreon-auth/internal/dto"
+	"github.com/hiamthach108/dreon-auth/internal/aggregate"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/model"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
@@ -16,17 +16,17 @@ import (
 
 type IRoleSvc interface {
 	// Role CRUD
-	CreateRole(ctx context.Context, req dto.CreateRoleReq, isSuperAdmin bool) (*dto.RoleResp, error)
-	GetRole(ctx context.Context, roleID string) (*dto.RoleResp, error)
-	UpdateRole(ctx context.Context, roleID string, req dto.UpdateRoleReq, isSuperAdmin bool) (*dto.RoleResp, error)
+	CreateRole(ctx context.Context, req aggregate.CreateRoleReq, isSuperAdmin bool) (*aggregate.RoleResp, error)
+	GetRole(ctx context.Context, roleID string) (*aggregate.RoleResp, error)
+	UpdateRole(ctx context.Context, roleID string, req aggregate.UpdateRoleReq, isSuperAdmin bool) (*aggregate.RoleResp, error)
 	DeleteRole(ctx context.Context, roleID string, isSuperAdmin bool) error
-	ListRoles(ctx context.Context, req dto.ListRolesReq) (*dto.PaginationResp[dto.RoleResp], error)
+	ListRoles(ctx context.Context, req aggregate.ListRolesReq) (*aggregate.PaginationResp[aggregate.RoleResp], error)
 
 	// User role assignment
-	AssignRoleToUser(ctx context.Context, req dto.AssignRoleToUserReq, isSuperAdmin bool) (*dto.UserRoleResp, error)
-	RemoveRoleFromUser(ctx context.Context, req dto.RemoveRoleFromUserReq, isSuperAdmin bool) error
-	GetUserRoles(ctx context.Context, req dto.GetUserRolesReq) ([]dto.UserRoleResp, error)
-	GetUserPermissions(ctx context.Context, userID string) (dto.UserPermissions, error)
+	AssignRoleToUser(ctx context.Context, req aggregate.AssignRoleToUserReq, isSuperAdmin bool) (*aggregate.UserRoleResp, error)
+	RemoveRoleFromUser(ctx context.Context, req aggregate.RemoveRoleFromUserReq, isSuperAdmin bool) error
+	GetUserRoles(ctx context.Context, req aggregate.GetUserRolesReq) ([]aggregate.UserRoleResp, error)
+	GetUserPermissions(ctx context.Context, userID string) (aggregate.UserPermissions, error)
 }
 
 type RoleSvc struct {
@@ -57,7 +57,7 @@ func NewRoleSvc(
 }
 
 // CreateRole creates a new role
-func (s *RoleSvc) CreateRole(ctx context.Context, req dto.CreateRoleReq, isSuperAdmin bool) (*dto.RoleResp, error) {
+func (s *RoleSvc) CreateRole(ctx context.Context, req aggregate.CreateRoleReq, isSuperAdmin bool) (*aggregate.RoleResp, error) {
 	// Validate system role creation
 	if req.ProjectID != nil && *req.ProjectID == constant.SystemProjectID && !isSuperAdmin {
 		return nil, errorx.New(errorx.ErrSystemRoleProtected, "Only super admins can create system roles")
@@ -85,20 +85,20 @@ func (s *RoleSvc) CreateRole(ctx context.Context, req dto.CreateRoleReq, isSuper
 	}
 
 	s.logger.Info(fmt.Sprintf("Role created: %s (code: %s)", created.Name, created.Code))
-	return dto.RoleRespFromModel(created), nil
+	return aggregate.RoleRespFromModel(created), nil
 }
 
 // GetRole retrieves a role by ID
-func (s *RoleSvc) GetRole(ctx context.Context, roleID string) (*dto.RoleResp, error) {
+func (s *RoleSvc) GetRole(ctx context.Context, roleID string) (*aggregate.RoleResp, error) {
 	role := s.roleRepo.FindOneById(ctx, roleID)
 	if role == nil {
 		return nil, errorx.New(errorx.ErrRoleNotFound, "Role not found")
 	}
-	return dto.RoleRespFromModel(role), nil
+	return aggregate.RoleRespFromModel(role), nil
 }
 
 // UpdateRole updates an existing role
-func (s *RoleSvc) UpdateRole(ctx context.Context, roleID string, req dto.UpdateRoleReq, isSuperAdmin bool) (*dto.RoleResp, error) {
+func (s *RoleSvc) UpdateRole(ctx context.Context, roleID string, req aggregate.UpdateRoleReq, isSuperAdmin bool) (*aggregate.RoleResp, error) {
 	// Check if role exists
 	role := s.roleRepo.FindOneById(ctx, roleID)
 	if role == nil {
@@ -128,7 +128,7 @@ func (s *RoleSvc) UpdateRole(ctx context.Context, roleID string, req dto.UpdateR
 
 	s.logger.Info(fmt.Sprintf("Role updated: %s (id: %s)", role.Name, roleID))
 	updated := s.roleRepo.FindOneById(ctx, roleID)
-	return dto.RoleRespFromModel(updated), nil
+	return aggregate.RoleRespFromModel(updated), nil
 }
 
 // DeleteRole deletes a role
@@ -154,7 +154,7 @@ func (s *RoleSvc) DeleteRole(ctx context.Context, roleID string, isSuperAdmin bo
 }
 
 // ListRoles lists roles with filters
-func (s *RoleSvc) ListRoles(ctx context.Context, req dto.ListRolesReq) (*dto.PaginationResp[dto.RoleResp], error) {
+func (s *RoleSvc) ListRoles(ctx context.Context, req aggregate.ListRolesReq) (*aggregate.PaginationResp[aggregate.RoleResp], error) {
 	pageSize := req.PageSize
 	if pageSize <= 0 {
 		pageSize = 10
@@ -196,16 +196,16 @@ func (s *RoleSvc) ListRoles(ctx context.Context, req dto.ListRolesReq) (*dto.Pag
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
-	items := make([]dto.RoleResp, 0, len(roles))
+	items := make([]aggregate.RoleResp, 0, len(roles))
 	for i := range roles {
-		if r := dto.RoleRespFromModel(&roles[i]); r != nil {
+		if r := aggregate.RoleRespFromModel(&roles[i]); r != nil {
 			items = append(items, *r)
 		}
 	}
 
 	hasNext := int64(offset+pageSize) < total
 
-	return &dto.PaginationResp[dto.RoleResp]{
+	return &aggregate.PaginationResp[aggregate.RoleResp]{
 		Items:    items,
 		Total:    total,
 		Page:     page,
@@ -215,7 +215,7 @@ func (s *RoleSvc) ListRoles(ctx context.Context, req dto.ListRolesReq) (*dto.Pag
 }
 
 // AssignRoleToUser assigns a role to a user
-func (s *RoleSvc) AssignRoleToUser(ctx context.Context, req dto.AssignRoleToUserReq, isSuperAdmin bool) (*dto.UserRoleResp, error) {
+func (s *RoleSvc) AssignRoleToUser(ctx context.Context, req aggregate.AssignRoleToUserReq, isSuperAdmin bool) (*aggregate.UserRoleResp, error) {
 	// Check if user exists
 	user := s.userRepo.FindOneById(ctx, req.UserID)
 	if user == nil {
@@ -257,11 +257,11 @@ func (s *RoleSvc) AssignRoleToUser(ctx context.Context, req dto.AssignRoleToUser
 	go s.clearUserPermissionsCache(req.UserID)
 
 	s.logger.Info(fmt.Sprintf("Role assigned: user=%s, role=%s", req.UserID, req.RoleID))
-	return dto.UserRoleRespFromModel(created, role), nil
+	return aggregate.UserRoleRespFromModel(created, role), nil
 }
 
 // RemoveRoleFromUser removes a role from a user
-func (s *RoleSvc) RemoveRoleFromUser(ctx context.Context, req dto.RemoveRoleFromUserReq, isSuperAdmin bool) error {
+func (s *RoleSvc) RemoveRoleFromUser(ctx context.Context, req aggregate.RemoveRoleFromUserReq, isSuperAdmin bool) error {
 	// Check if role exists
 	role := s.roleRepo.FindOneById(ctx, req.RoleID)
 	if role == nil {
@@ -294,7 +294,7 @@ func (s *RoleSvc) RemoveRoleFromUser(ctx context.Context, req dto.RemoveRoleFrom
 }
 
 // GetUserRoles retrieves all roles assigned to a user
-func (s *RoleSvc) GetUserRoles(ctx context.Context, req dto.GetUserRolesReq) ([]dto.UserRoleResp, error) {
+func (s *RoleSvc) GetUserRoles(ctx context.Context, req aggregate.GetUserRolesReq) ([]aggregate.UserRoleResp, error) {
 	// Check if user exists
 	user := s.userRepo.FindOneById(ctx, req.UserID)
 	if user == nil {
@@ -306,9 +306,9 @@ func (s *RoleSvc) GetUserRoles(ctx context.Context, req dto.GetUserRolesReq) ([]
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
-	results := make([]dto.UserRoleResp, 0, len(userRoles))
+	results := make([]aggregate.UserRoleResp, 0, len(userRoles))
 	for i := range userRoles {
-		if ur := dto.UserRoleRespFromModel(&userRoles[i], &userRoles[i].Role); ur != nil {
+		if ur := aggregate.UserRoleRespFromModel(&userRoles[i], &userRoles[i].Role); ur != nil {
 			results = append(results, *ur)
 		}
 	}
@@ -317,15 +317,15 @@ func (s *RoleSvc) GetUserRoles(ctx context.Context, req dto.GetUserRolesReq) ([]
 }
 
 // GetUserPermissions retrieves all permissions assigned to a user
-func (s *RoleSvc) GetUserPermissions(ctx context.Context, userID string) (dto.UserPermissions, error) {
+func (s *RoleSvc) GetUserPermissions(ctx context.Context, userID string) (aggregate.UserPermissions, error) {
 	// cache the permissions for the user
 	cacheKey := s.userPermissionsCacheKey(userID)
-	var permissions dto.UserPermissions
+	var permissions aggregate.UserPermissions
 	err := s.cache.Get(cacheKey, &permissions)
 	if err == nil {
 		return permissions, nil
 	} else if err != cache.ErrCacheNil {
-		return dto.UserPermissions{}, errorx.Wrap(errorx.ErrInternal, err)
+		return aggregate.UserPermissions{}, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
 	userRoles, err := s.userRoleRepo.FindByUserID(ctx, userID)
@@ -334,7 +334,7 @@ func (s *RoleSvc) GetUserPermissions(ctx context.Context, userID string) (dto.Us
 	}
 
 	// Get all permissions from the user roles and loop through each role permissions with the project ID
-	permissions = make(dto.UserPermissions)
+	permissions = make(aggregate.UserPermissions)
 	for _, userRole := range userRoles {
 		for _, permissionCode := range model.PermissionsFromJSON(userRole.Role.Permissions) {
 			permissions[s.buildPermissionKey(permissionCode, userRole.ProjectID)] = true
@@ -343,7 +343,7 @@ func (s *RoleSvc) GetUserPermissions(ctx context.Context, userID string) (dto.Us
 
 	ttl := constant.CacheDefaultTTL
 	if err := s.cache.Set(cacheKey, permissions, &ttl); err != nil {
-		return dto.UserPermissions{}, errorx.Wrap(errorx.ErrInternal, err)
+		return aggregate.UserPermissions{}, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
 	return permissions, nil

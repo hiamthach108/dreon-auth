@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hiamthach108/dreon-auth/config"
-	"github.com/hiamthach108/dreon-auth/internal/dto"
+	"github.com/hiamthach108/dreon-auth/internal/aggregate"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/model"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
@@ -24,12 +24,12 @@ import (
 )
 
 type IAuthSvc interface {
-	Login(ctx context.Context, req dto.LoginReq) (*dto.LoginResp, error)
-	Register(ctx context.Context, req dto.RegisterReq) (*dto.TokenResp, error)
-	RefreshToken(ctx context.Context, req dto.RefreshTokenReq) (*dto.TokenResp, error)
-	Logout(ctx context.Context, req dto.LogoutReq) error
+	Login(ctx context.Context, req aggregate.LoginReq) (*aggregate.LoginResp, error)
+	Register(ctx context.Context, req aggregate.RegisterReq) (*aggregate.TokenResp, error)
+	RefreshToken(ctx context.Context, req aggregate.RefreshTokenReq) (*aggregate.TokenResp, error)
+	Logout(ctx context.Context, req aggregate.LogoutReq) error
 	ValidateToken(ctx context.Context, token string) (*jwt.Payload, error)
-	SessionFromState(ctx context.Context, req dto.SessionFromStateReq) (*dto.TokenResp, error)
+	SessionFromState(ctx context.Context, req aggregate.SessionFromStateReq) (*aggregate.TokenResp, error)
 	ExchangeGoogleCode(ctx context.Context, code, state string) (redirectURL string, err error)
 }
 
@@ -74,14 +74,14 @@ func NewAuthSvc(
 	}
 }
 
-func (s *AuthSvc) Login(ctx context.Context, req dto.LoginReq) (*dto.LoginResp, error) {
+func (s *AuthSvc) Login(ctx context.Context, req aggregate.LoginReq) (*aggregate.LoginResp, error) {
 	switch req.AuthType {
 	case constant.UserAuthTypeEmail:
 		tokenResp, err := s.loginWithEmail(ctx, req)
 		if err != nil {
 			return nil, err
 		}
-		return &dto.LoginResp{
+		return &aggregate.LoginResp{
 			TokenResp: *tokenResp,
 		}, nil
 	case constant.UserAuthTypeSuperAdmin:
@@ -89,7 +89,7 @@ func (s *AuthSvc) Login(ctx context.Context, req dto.LoginReq) (*dto.LoginResp, 
 		if err != nil {
 			return nil, err
 		}
-		return &dto.LoginResp{
+		return &aggregate.LoginResp{
 			TokenResp: *tokenResp,
 		}, nil
 	case constant.UserAuthTypeGoogle:
@@ -103,7 +103,7 @@ func (s *AuthSvc) Login(ctx context.Context, req dto.LoginReq) (*dto.LoginResp, 
 	}
 }
 
-func (s *AuthSvc) Register(ctx context.Context, req dto.RegisterReq) (*dto.TokenResp, error) {
+func (s *AuthSvc) Register(ctx context.Context, req aggregate.RegisterReq) (*aggregate.TokenResp, error) {
 	existing, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
@@ -134,7 +134,7 @@ func (s *AuthSvc) Register(ctx context.Context, req dto.RegisterReq) (*dto.Token
 	})
 }
 
-func (s *AuthSvc) RefreshToken(ctx context.Context, req dto.RefreshTokenReq) (*dto.TokenResp, error) {
+func (s *AuthSvc) RefreshToken(ctx context.Context, req aggregate.RefreshTokenReq) (*aggregate.TokenResp, error) {
 	session := s.sessionRepo.FindByRefreshToken(ctx, req.RefreshToken)
 	if session == nil {
 		return nil, errorx.New(errorx.ErrInvalidRefreshToken, errorx.GetErrorMessage(int(errorx.ErrInvalidRefreshToken)))
@@ -149,7 +149,7 @@ func (s *AuthSvc) RefreshToken(ctx context.Context, req dto.RefreshTokenReq) (*d
 	})
 }
 
-func (s *AuthSvc) Logout(ctx context.Context, req dto.LogoutReq) error {
+func (s *AuthSvc) Logout(ctx context.Context, req aggregate.LogoutReq) error {
 	// remove refresh token from session table
 	session := s.sessionRepo.FindByRefreshToken(ctx, req.RefreshToken)
 	if session == nil {
@@ -179,9 +179,9 @@ func (s *AuthSvc) ExchangeGoogleCode(ctx context.Context, code, state string) (r
 	if err != nil {
 		return "", errorx.Wrap(errorx.ErrInternal, err)
 	}
-	cached := dto.CachedOAuthState{
+	cached := aggregate.CachedOAuthState{
 		AuthType: constant.UserAuthTypeGoogle,
-		UserData: dto.OAuthUserData{
+		UserData: aggregate.OAuthUserData{
 			Email:      userInfo.Email,
 			Name:       userInfo.Name,
 			ProviderID: userInfo.ID,
@@ -215,9 +215,9 @@ func (s *AuthSvc) ExchangeGoogleCode(ctx context.Context, code, state string) (r
 	return redirectURL, nil
 }
 
-func (s *AuthSvc) SessionFromState(ctx context.Context, req dto.SessionFromStateReq) (*dto.TokenResp, error) {
+func (s *AuthSvc) SessionFromState(ctx context.Context, req aggregate.SessionFromStateReq) (*aggregate.TokenResp, error) {
 	key := s.buildRefreshStateCacheKey(ctx, req.RefreshState)
-	var cached dto.CachedOAuthState
+	var cached aggregate.CachedOAuthState
 	if err := s.cache.Get(key, &cached); err != nil {
 		if err == cache.ErrCacheNil {
 			return nil, errorx.New(errorx.ErrInvalidRefreshState, errorx.GetErrorMessage(int(errorx.ErrInvalidRefreshState)))
@@ -268,7 +268,7 @@ func (s *AuthSvc) SessionFromState(ctx context.Context, req dto.SessionFromState
 	})
 }
 
-func (s *AuthSvc) generateTokens(ctx context.Context, payload jwt.Payload) (*dto.TokenResp, error) {
+func (s *AuthSvc) generateTokens(ctx context.Context, payload jwt.Payload) (*aggregate.TokenResp, error) {
 	refreshToken, err := helper.GenerateRefreshToken()
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
@@ -296,7 +296,7 @@ func (s *AuthSvc) generateTokens(ctx context.Context, payload jwt.Payload) (*dto
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
-	return &dto.TokenResp{
+	return &aggregate.TokenResp{
 		UserID:                payload.UserID,
 		SessionID:             session.ID,
 		AccessToken:           accessToken,
@@ -306,7 +306,7 @@ func (s *AuthSvc) generateTokens(ctx context.Context, payload jwt.Payload) (*dto
 	}, nil
 }
 
-func (s *AuthSvc) loginWithSuperAdmin(ctx context.Context, req dto.LoginReq) (*dto.TokenResp, error) {
+func (s *AuthSvc) loginWithSuperAdmin(ctx context.Context, req aggregate.LoginReq) (*aggregate.TokenResp, error) {
 	user, err := s.superAdminRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
@@ -330,7 +330,7 @@ func (s *AuthSvc) loginWithSuperAdmin(ctx context.Context, req dto.LoginReq) (*d
 	return tokenResp, nil
 }
 
-func (s *AuthSvc) loginWithEmail(ctx context.Context, req dto.LoginReq) (*dto.TokenResp, error) {
+func (s *AuthSvc) loginWithEmail(ctx context.Context, req aggregate.LoginReq) (*aggregate.TokenResp, error) {
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
@@ -357,7 +357,7 @@ func (s *AuthSvc) loginWithEmail(ctx context.Context, req dto.LoginReq) (*dto.To
 	return tokenResp, nil
 }
 
-func (s *AuthSvc) loginWithGoogle(ctx context.Context, req dto.LoginReq) (*dto.LoginResp, error) {
+func (s *AuthSvc) loginWithGoogle(ctx context.Context, req aggregate.LoginReq) (*aggregate.LoginResp, error) {
 	refreshState, err := helper.GenerateRefreshToken()
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
@@ -375,7 +375,7 @@ func (s *AuthSvc) loginWithGoogle(ctx context.Context, req dto.LoginReq) (*dto.L
 	if err != nil {
 		return nil, err
 	}
-	return &dto.LoginResp{
+	return &aggregate.LoginResp{
 		RefreshState: refreshState,
 		RedirectURL:  authURL,
 	}, nil
@@ -385,7 +385,7 @@ func (s *AuthSvc) buildGoogleAuthURL(state string) (string, error) {
 	return s.googleOAuth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("prompt", "consent")), nil
 }
 
-func (s *AuthSvc) fetchGoogleUserInfo(ctx context.Context, accessToken string) (*dto.GoogleUserData, error) {
+func (s *AuthSvc) fetchGoogleUserInfo(ctx context.Context, accessToken string) (*aggregate.GoogleUserData, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://www.googleapis.com/oauth2/v2/userinfo", nil)
 	if err != nil {
 		return nil, err
@@ -399,7 +399,7 @@ func (s *AuthSvc) fetchGoogleUserInfo(ctx context.Context, accessToken string) (
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("google userinfo returned %d", resp.StatusCode)
 	}
-	var info dto.GoogleUserData
+	var info aggregate.GoogleUserData
 	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
 		return nil, err
 	}
@@ -410,11 +410,11 @@ func (s *AuthSvc) buildOAuthRedirectCacheKey(ctx context.Context, state string) 
 	return fmt.Sprintf("oauth_redirect:%s", state)
 }
 
-func (s *AuthSvc) loginWithFacebook(ctx context.Context, req dto.LoginReq) (*dto.LoginResp, error) {
+func (s *AuthSvc) loginWithFacebook(ctx context.Context, req aggregate.LoginReq) (*aggregate.LoginResp, error) {
 	panic("not implemented")
 }
 
-func (s *AuthSvc) loginWithApple(ctx context.Context, req dto.LoginReq) (*dto.LoginResp, error) {
+func (s *AuthSvc) loginWithApple(ctx context.Context, req aggregate.LoginReq) (*aggregate.LoginResp, error) {
 	panic("not implemented")
 }
 

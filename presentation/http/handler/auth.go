@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/hiamthach108/dreon-auth/internal/dto"
+	"github.com/hiamthach108/dreon-auth/internal/aggregate"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/service"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
@@ -39,7 +39,7 @@ func (h *AuthHandler) RegisterRoutes(g *echo.Group) {
 
 func (h *AuthHandler) HandleLogin(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.LoginReq](c)
+	req, err := HandleValidateBind[aggregate.LoginReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -53,7 +53,7 @@ func (h *AuthHandler) HandleLogin(c echo.Context) error {
 
 func (h *AuthHandler) HandleRegister(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.RegisterReq](c)
+	req, err := HandleValidateBind[aggregate.RegisterReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -67,7 +67,7 @@ func (h *AuthHandler) HandleRegister(c echo.Context) error {
 
 func (h *AuthHandler) HandleRefreshToken(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.RefreshTokenReq](c)
+	req, err := HandleValidateBind[aggregate.RefreshTokenReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -81,7 +81,7 @@ func (h *AuthHandler) HandleRefreshToken(c echo.Context) error {
 
 func (h *AuthHandler) HandleLogout(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.LogoutReq](c)
+	req, err := HandleValidateBind[aggregate.LogoutReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}
@@ -115,7 +115,7 @@ func (h *AuthHandler) HandleGoogleOAuthCallback(c echo.Context) error {
 
 func (h *AuthHandler) HandleSessionFromState(c echo.Context) error {
 	ctx := c.Request().Context()
-	req, err := HandleValidateBind[dto.SessionFromStateReq](c)
+	req, err := HandleValidateBind[aggregate.SessionFromStateReq](c)
 	if err != nil {
 		return HandleError(c, errorx.Wrap(errorx.ErrBadRequest, err))
 	}

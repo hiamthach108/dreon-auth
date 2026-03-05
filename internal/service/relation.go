@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hiamthach108/dreon-auth/internal/dto"
+	"github.com/hiamthach108/dreon-auth/internal/aggregate"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/model"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
@@ -16,17 +16,17 @@ import (
 
 type IRelationSvc interface {
 	// Grant and revoke relations
-	GrantRelation(ctx context.Context, req dto.GrantRelationReq) (*dto.RelationTupleResp, error)
-	RevokeRelation(ctx context.Context, req dto.RevokeRelationReq) error
-	BulkGrantRelations(ctx context.Context, req dto.BulkGrantRelationReq) ([]dto.RelationTupleResp, error)
-	BulkRevokeRelations(ctx context.Context, req dto.BulkRevokeRelationReq) error
+	GrantRelation(ctx context.Context, req aggregate.GrantRelationReq) (*aggregate.RelationTupleResp, error)
+	RevokeRelation(ctx context.Context, req aggregate.RevokeRelationReq) error
+	BulkGrantRelations(ctx context.Context, req aggregate.BulkGrantRelationReq) ([]aggregate.RelationTupleResp, error)
+	BulkRevokeRelations(ctx context.Context, req aggregate.BulkRevokeRelationReq) error
 
 	// Check relations
-	CheckRelation(ctx context.Context, req dto.CheckRelationReq) (*dto.CheckRelationResp, error)
+	CheckRelation(ctx context.Context, req aggregate.CheckRelationReq) (*aggregate.CheckRelationResp, error)
 
 	// List and expand relations
-	ListRelations(ctx context.Context, req dto.ListRelationsReq) (*dto.PaginationResp[dto.RelationTupleResp], error)
-	ExpandRelation(ctx context.Context, req dto.ExpandRelationReq) (*dto.ExpandRelationResp, error)
+	ListRelations(ctx context.Context, req aggregate.ListRelationsReq) (*aggregate.PaginationResp[aggregate.RelationTupleResp], error)
+	ExpandRelation(ctx context.Context, req aggregate.ExpandRelationReq) (*aggregate.ExpandRelationResp, error)
 
 	// Maintenance
 	CleanupExpiredRelations(ctx context.Context) (int64, error)
@@ -51,7 +51,7 @@ func NewRelationSvc(
 }
 
 // GrantRelation grants a relation by creating a relation tuple
-func (s *RelationSvc) GrantRelation(ctx context.Context, req dto.GrantRelationReq) (*dto.RelationTupleResp, error) {
+func (s *RelationSvc) GrantRelation(ctx context.Context, req aggregate.GrantRelationReq) (*aggregate.RelationTupleResp, error) {
 	if err := s.validateRelationRequest(req); err != nil {
 		return nil, errorx.Wrap(errorx.ErrInvalidPermission, err)
 	}
@@ -97,7 +97,7 @@ func (s *RelationSvc) GrantRelation(ctx context.Context, req dto.GrantRelationRe
 }
 
 // RevokeRelation revokes a relation by deleting the relation tuple
-func (s *RelationSvc) RevokeRelation(ctx context.Context, req dto.RevokeRelationReq) error {
+func (s *RelationSvc) RevokeRelation(ctx context.Context, req aggregate.RevokeRelationReq) error {
 	existing, err := s.tupleRepo.FindByTuple(
 		ctx,
 		req.Namespace,
@@ -136,8 +136,8 @@ func (s *RelationSvc) RevokeRelation(ctx context.Context, req dto.RevokeRelation
 }
 
 // BulkGrantRelations grants multiple relations in a single transaction
-func (s *RelationSvc) BulkGrantRelations(ctx context.Context, req dto.BulkGrantRelationReq) ([]dto.RelationTupleResp, error) {
-	results := make([]dto.RelationTupleResp, 0, len(req.Relations))
+func (s *RelationSvc) BulkGrantRelations(ctx context.Context, req aggregate.BulkGrantRelationReq) ([]aggregate.RelationTupleResp, error) {
+	results := make([]aggregate.RelationTupleResp, 0, len(req.Relations))
 	tuples := make([]model.RelationTuple, 0, len(req.Relations))
 
 	for _, relReq := range req.Relations {
@@ -171,7 +171,7 @@ func (s *RelationSvc) BulkGrantRelations(ctx context.Context, req dto.BulkGrantR
 }
 
 // BulkRevokeRelations revokes multiple relations
-func (s *RelationSvc) BulkRevokeRelations(ctx context.Context, req dto.BulkRevokeRelationReq) error {
+func (s *RelationSvc) BulkRevokeRelations(ctx context.Context, req aggregate.BulkRevokeRelationReq) error {
 	for _, relReq := range req.Relations {
 		if err := s.RevokeRelation(ctx, relReq); err != nil {
 			if errorx.GetCode(err) != errorx.ErrPermissionNotFound {
@@ -186,7 +186,7 @@ func (s *RelationSvc) BulkRevokeRelations(ctx context.Context, req dto.BulkRevok
 }
 
 // CheckRelation checks if a subject has a specific relation on an object
-func (s *RelationSvc) CheckRelation(ctx context.Context, req dto.CheckRelationReq) (*dto.CheckRelationResp, error) {
+func (s *RelationSvc) CheckRelation(ctx context.Context, req aggregate.CheckRelationReq) (*aggregate.CheckRelationResp, error) {
 
 	var allowed bool
 	cacheKey := s.buildCacheKey(&model.RelationTuple{
@@ -205,7 +205,7 @@ func (s *RelationSvc) CheckRelation(ctx context.Context, req dto.CheckRelationRe
 		SubjectObjectID:  req.SubjectObjectID,
 	}), &allowed)
 	if err == nil {
-		return &dto.CheckRelationResp{Allowed: allowed}, nil
+		return &aggregate.CheckRelationResp{Allowed: allowed}, nil
 	} else if err != cache.ErrCacheNil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
@@ -222,7 +222,7 @@ func (s *RelationSvc) CheckRelation(ctx context.Context, req dto.CheckRelationRe
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
-	resp := &dto.CheckRelationResp{
+	resp := &aggregate.CheckRelationResp{
 		Allowed: allowed,
 	}
 
@@ -240,7 +240,7 @@ func (s *RelationSvc) CheckRelation(ctx context.Context, req dto.CheckRelationRe
 }
 
 // ListRelations lists relations with optional filters
-func (s *RelationSvc) ListRelations(ctx context.Context, req dto.ListRelationsReq) (*dto.PaginationResp[dto.RelationTupleResp], error) {
+func (s *RelationSvc) ListRelations(ctx context.Context, req aggregate.ListRelationsReq) (*aggregate.PaginationResp[aggregate.RelationTupleResp], error) {
 	pageSize := req.PageSize
 	if pageSize <= 0 {
 		pageSize = 10
@@ -281,14 +281,14 @@ func (s *RelationSvc) ListRelations(ctx context.Context, req dto.ListRelationsRe
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
-	items := make([]dto.RelationTupleResp, 0, len(tuples))
+	items := make([]aggregate.RelationTupleResp, 0, len(tuples))
 	for i := range tuples {
 		items = append(items, *s.toRelationTupleResp(&tuples[i]))
 	}
 
 	hasNext := int64(offset+pageSize) < total
 
-	return &dto.PaginationResp[dto.RelationTupleResp]{
+	return &aggregate.PaginationResp[aggregate.RelationTupleResp]{
 		Items:    items,
 		Total:    total,
 		Page:     page,
@@ -298,22 +298,22 @@ func (s *RelationSvc) ListRelations(ctx context.Context, req dto.ListRelationsRe
 }
 
 // ExpandRelation expands a relation to get all subjects with that relation
-func (s *RelationSvc) ExpandRelation(ctx context.Context, req dto.ExpandRelationReq) (*dto.ExpandRelationResp, error) {
+func (s *RelationSvc) ExpandRelation(ctx context.Context, req aggregate.ExpandRelationReq) (*aggregate.ExpandRelationResp, error) {
 	tuples, err := s.tupleRepo.ExpandSubjects(ctx, req.Namespace, req.ObjectID, req.Relation)
 	if err != nil {
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
-	subjects := make([]dto.RelationSubjectResp, 0, len(tuples))
+	subjects := make([]aggregate.RelationSubjectResp, 0, len(tuples))
 	for _, tuple := range tuples {
-		subjects = append(subjects, dto.RelationSubjectResp{
+		subjects = append(subjects, aggregate.RelationSubjectResp{
 			Namespace: tuple.SubjectNamespace,
 			ObjectID:  tuple.SubjectObjectID,
 			Relation:  tuple.SubjectRelation,
 		})
 	}
 
-	return &dto.ExpandRelationResp{
+	return &aggregate.ExpandRelationResp{
 		Subjects: subjects,
 		Count:    len(subjects),
 	}, nil
@@ -334,7 +334,7 @@ func (s *RelationSvc) CleanupExpiredRelations(ctx context.Context) (int64, error
 }
 
 // validateRelationRequest validates the relation request
-func (s *RelationSvc) validateRelationRequest(req dto.GrantRelationReq) error {
+func (s *RelationSvc) validateRelationRequest(req aggregate.GrantRelationReq) error {
 	if req.Namespace == "" {
 		return fmt.Errorf("namespace is required")
 	}
@@ -357,8 +357,8 @@ func (s *RelationSvc) validateRelationRequest(req dto.GrantRelationReq) error {
 }
 
 // toRelationTupleResp converts a relation tuple to a response
-func (s *RelationSvc) toRelationTupleResp(tuple *model.RelationTuple) *dto.RelationTupleResp {
-	return &dto.RelationTupleResp{
+func (s *RelationSvc) toRelationTupleResp(tuple *model.RelationTuple) *aggregate.RelationTupleResp {
+	return &aggregate.RelationTupleResp{
 		ID:               tuple.ID,
 		Namespace:        tuple.Namespace,
 		ObjectID:         tuple.ObjectID,

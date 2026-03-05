@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/hiamthach108/dreon-auth/internal/dto"
+	"github.com/hiamthach108/dreon-auth/internal/aggregate"
 	"github.com/hiamthach108/dreon-auth/internal/errorx"
 	"github.com/hiamthach108/dreon-auth/internal/repository"
 	"github.com/hiamthach108/dreon-auth/pkg/logger"
@@ -12,10 +12,10 @@ import (
 
 // IUserSvc defines the contract for user operations.
 type IUserSvc interface {
-	Create(ctx context.Context, req dto.CreateUserReq) (*dto.UserDto, error)
-	GetByID(ctx context.Context, id string) (*dto.UserDto, error)
-	List(ctx context.Context, page, pageSize int) (*dto.PaginationResp[dto.UserDto], error)
-	Update(ctx context.Context, id string, req dto.UpdateUserReq) (*dto.UserDto, error)
+	Create(ctx context.Context, req aggregate.CreateUserReq) (*aggregate.UserDto, error)
+	GetByID(ctx context.Context, id string) (*aggregate.UserDto, error)
+	List(ctx context.Context, page, pageSize int) (*aggregate.PaginationResp[aggregate.UserDto], error)
+	Update(ctx context.Context, id string, req aggregate.UpdateUserReq) (*aggregate.UserDto, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -34,7 +34,7 @@ func NewUserSvc(logger logger.ILogger, repo repository.IUserRepository) IUserSvc
 }
 
 // Create creates a new user with hashed password.
-func (s *UserSvc) Create(ctx context.Context, req dto.CreateUserReq) (*dto.UserDto, error) {
+func (s *UserSvc) Create(ctx context.Context, req aggregate.CreateUserReq) (*aggregate.UserDto, error) {
 	existing, err := s.repo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		s.logger.Error("[UserSvc] failed to check email", "email", req.Email, "error", err)
@@ -57,24 +57,24 @@ func (s *UserSvc) Create(ctx context.Context, req dto.CreateUserReq) (*dto.UserD
 		return nil, errorx.Wrap(errorx.ErrCreateUser, err)
 	}
 
-	var resp dto.UserDto
+	var resp aggregate.UserDto
 	resp.FromModel(created)
 	return &resp, nil
 }
 
 // GetByID returns a user by ID.
-func (s *UserSvc) GetByID(ctx context.Context, id string) (*dto.UserDto, error) {
+func (s *UserSvc) GetByID(ctx context.Context, id string) (*aggregate.UserDto, error) {
 	u := s.repo.FindOneById(ctx, id)
 	if u == nil {
 		return nil, errorx.Wrap(errorx.ErrUserNotFound, nil)
 	}
-	var resp dto.UserDto
+	var resp aggregate.UserDto
 	resp.FromModel(u)
 	return &resp, nil
 }
 
 // List returns a paginated list of users.
-func (s *UserSvc) List(ctx context.Context, page, pageSize int) (*dto.PaginationResp[dto.UserDto], error) {
+func (s *UserSvc) List(ctx context.Context, page, pageSize int) (*aggregate.PaginationResp[aggregate.UserDto], error) {
 	if page < 1 {
 		page = 1
 	}
@@ -89,15 +89,15 @@ func (s *UserSvc) List(ctx context.Context, page, pageSize int) (*dto.Pagination
 		return nil, errorx.Wrap(errorx.ErrInternal, err)
 	}
 
-	items := make([]dto.UserDto, 0, len(users))
+	items := make([]aggregate.UserDto, 0, len(users))
 	for i := range users {
-		var d dto.UserDto
+		var d aggregate.UserDto
 		d.FromModel(&users[i])
 		items = append(items, d)
 	}
 
 	hasNext := int64(offset+len(users)) < total
-	return &dto.PaginationResp[dto.UserDto]{
+	return &aggregate.PaginationResp[aggregate.UserDto]{
 		Total:    total,
 		Page:     page,
 		PageSize: pageSize,
@@ -107,7 +107,7 @@ func (s *UserSvc) List(ctx context.Context, page, pageSize int) (*dto.Pagination
 }
 
 // Update updates a user by ID (partial update).
-func (s *UserSvc) Update(ctx context.Context, id string, req dto.UpdateUserReq) (*dto.UserDto, error) {
+func (s *UserSvc) Update(ctx context.Context, id string, req aggregate.UpdateUserReq) (*aggregate.UserDto, error) {
 	u := s.repo.FindOneById(ctx, id)
 	if u == nil {
 		return nil, errorx.Wrap(errorx.ErrUserNotFound, nil)
@@ -115,7 +115,7 @@ func (s *UserSvc) Update(ctx context.Context, id string, req dto.UpdateUserReq) 
 
 	updated, fields := req.ToModelAndFields()
 	if len(fields) == 0 {
-		var resp dto.UserDto
+		var resp aggregate.UserDto
 		resp.FromModel(u)
 		return &resp, nil
 	}
@@ -140,11 +140,11 @@ func (s *UserSvc) Update(ctx context.Context, id string, req dto.UpdateUserReq) 
 
 	updatedUser := s.repo.FindOneById(ctx, id)
 	if updatedUser == nil {
-		var resp dto.UserDto
+		var resp aggregate.UserDto
 		resp.FromModel(u)
 		return &resp, nil
 	}
-	var resp dto.UserDto
+	var resp aggregate.UserDto
 	resp.FromModel(updatedUser)
 	return &resp, nil
 }
